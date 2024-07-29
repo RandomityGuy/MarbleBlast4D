@@ -27,8 +27,13 @@ public abstract class Collider4D : MonoBehaviour {
     public bool isFloor = false;
     public bool extendedRange = false;
 
+    [System.NonSerialized] public int key = -1;
+
     [HideInInspector] public Vector4 aabbMin = Vector4.one * float.MaxValue;
     [HideInInspector] public Vector4 aabbMax = Vector4.one * float.MinValue;
+
+    [HideInInspector] public Vector4 worldAabbMin = Vector4.one * float.MaxValue;
+    [HideInInspector] public Vector4 worldAabbMax = Vector4.one * float.MinValue;
 
     public static Dictionary<int, ColliderGroup4D> colliders = new();
     public static void UpdateColliders() {
@@ -62,6 +67,13 @@ public abstract class Collider4D : MonoBehaviour {
     protected void AddBoundingPoint(Vector4 pt) {
         aabbMin = Vector4.Min(aabbMin, pt);
         aabbMax = Vector4.Max(aabbMax, pt);
+    }
+
+    public void CalculateWorldAABB()
+    {
+        Transform4D localToWorld4D = obj4D.WorldTransform4D();
+        worldAabbMin = localToWorld4D * aabbMin;
+        worldAabbMax = localToWorld4D * aabbMax;
     }
 
     public bool Collide(Vector4 worldPt, float radius, ref Hit hit) {

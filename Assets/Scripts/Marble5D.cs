@@ -31,11 +31,9 @@ public class Marble5D : MonoBehaviour
     public Vector5 position;
     public Vector5 velocity;
     public BiVector5 omega;
-    public Vector5 acceleration;
-    public BiVector5 angularAcceleration;
-    public BiVector5 alphaAdd;
-    public BiVector5 alphaFriction;
     R500 orientation;
+
+    Vector5 currentUp = new Vector5(0, 1, 0, 0, 0);
 
     public float radiusOfGyration = 3f; // https://github.com/EpiTorres/into-another-dimension/tree/main
 
@@ -205,8 +203,6 @@ public class Marble5D : MonoBehaviour
             Vector5 A = this._getExternalForces(mv, contacts);
             BiVector5 a;
             this._applyContactForces(dt, mv, contacts, isCentered, aControl, desiredOmega, ref velocity, ref omega, ref A, out a);
-            acceleration = A;
-            angularAcceleration = a;
             velocity += A * dt;
             omega += a * dt;
             this._velocityCancel(contacts, ref velocity, ref omega, isCentered, true);
@@ -227,7 +223,7 @@ public class Marble5D : MonoBehaviour
     {
         aControl = default(BiVector5);
         desiredOmega = default(BiVector5);
-        Vector5 gWorkGravityDir = new Vector5(0f, -1f, 0f, 0f, 0f);
+        Vector5 gWorkGravityDir = -currentUp;
         Vector5 R = -gWorkGravityDir * this._radius;
         Vector5 rollVelocity = R * omega; 
         Vector5 sideDir;
@@ -300,7 +296,7 @@ public class Marble5D : MonoBehaviour
     {
         a = default(BiVector5);
         this._slipAmount = 0f;
-        Vector5 gWorkGravityDir = new Vector5(0f, -1f, 0f, 0f, 0f);
+        Vector5 gWorkGravityDir = -currentUp;
         int bestSurface = -1;
         float bestNormalForce = 0f;
         for (int i = 0; i < contacts.Count; i++)
@@ -394,19 +390,17 @@ public class Marble5D : MonoBehaviour
                 A += Aadd;
                 a += aadd;
 
-                alphaAdd = aadd;
             }
             A += AFriction;
             a += aFriction;
 
-            alphaFriction = aFriction;
         }
         a += aControl;
     }
 
     private Vector5 _getExternalForces(Move5D mv, List<CollisionInfo5D> contacts)
     {
-        Vector5 gWorkGravityDir = new Vector5(0f, -1f, 0f, 0f, 0f);
+        Vector5 gWorkGravityDir = -currentUp;
         Vector5 A = gWorkGravityDir * this._gravity;
         if (contacts.Count == 0)
         {
@@ -560,8 +554,7 @@ public class Marble5D : MonoBehaviour
 
     private void _getMarbleAxis(out Vector5 sideDir, out Vector5 motionDir, out Vector5 upDir, out Vector5 wDir, out Vector5 vDir)
     {
-        Vector5 gWorkGravityDir = new Vector5(0f, -1f, 0f, 0f, 0f);
-        upDir = -gWorkGravityDir;
+        upDir = currentUp;
 
         sideDir = new Vector5(1, 0, 0, 0, 0);
         motionDir = new Vector5(0, 0, 1, 0, 0);

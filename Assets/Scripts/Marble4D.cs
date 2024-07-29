@@ -30,15 +30,13 @@ public class Marble4D : MonoBehaviour
     public Vector4 position;
     public Vector4 velocity;
     public BiVector3 omega;
-    public Vector4 acceleration;
-    public BiVector3 angularAcceleration;
-    public BiVector3 alphaAdd;
-    public BiVector3 alphaFriction;
     Rotor4D orientation;
 
     public float radiusOfGyration = 2f; // https://github.com/EpiTorres/into-another-dimension/tree/main
 
     Vector4 lastRenderedPosition;
+
+    Vector4 currentUp = new Vector4(0, 1, 0, 0);
 
     private float _radius = 0.2f;
 
@@ -185,8 +183,6 @@ public class Marble4D : MonoBehaviour
             Vector4 A = this._getExternalForces(mv, contacts);
             BiVector3 a;
             this._applyContactForces(dt, mv, contacts, isCentered, aControl, desiredOmega, ref velocity, ref omega, ref A, out a);
-            acceleration = A;
-            angularAcceleration = a;
             velocity += A * dt;
             omega += a * dt;
             this._velocityCancel(contacts, ref velocity, ref omega, isCentered, true);
@@ -207,7 +203,7 @@ public class Marble4D : MonoBehaviour
     {
         aControl = default(BiVector3);
         desiredOmega = default(BiVector3);
-        Vector4 gWorkGravityDir = new Vector4(0f, -1f, 0f, 0f);
+        Vector4 gWorkGravityDir = -currentUp;
         Vector4 R = -gWorkGravityDir * this._radius;
         Vector4 rollVelocity = R * omega; 
         Vector4 sideDir;
@@ -264,7 +260,7 @@ public class Marble4D : MonoBehaviour
     {
         a = default(BiVector3);
         this._slipAmount = 0f;
-        Vector4 gWorkGravityDir = new Vector4(0f, -1f, 0f, 0f);
+        Vector4 gWorkGravityDir = -currentUp;
         int bestSurface = -1;
         float bestNormalForce = 0f;
         for (int i = 0; i < contacts.Count; i++)
@@ -358,19 +354,17 @@ public class Marble4D : MonoBehaviour
                 A += Aadd;
                 a += aadd;
 
-                alphaAdd = aadd;
             }
             A += AFriction;
             a += aFriction;
 
-            alphaFriction = aFriction;
         }
         a += aControl;
     }
 
     private Vector4 _getExternalForces(Move mv, List<CollisionInfo> contacts)
     {
-        Vector4 gWorkGravityDir = new Vector4(0f, -1f, 0f, 0f);
+        Vector4 gWorkGravityDir = -currentUp;
         Vector4 A = gWorkGravityDir * this._gravity;
         if (contacts.Count == 0)
         {
@@ -523,7 +517,7 @@ public class Marble4D : MonoBehaviour
 
     private void _getMarbleAxis(out Vector4 sideDir, out Vector4 motionDir, out Vector4 upDir, out Vector4 wDir)
     {
-        Vector4 gWorkGravityDir = new Vector4(0f, -1f, 0f, 0f);
+        Vector4 gWorkGravityDir = -currentUp;
         upDir = -gWorkGravityDir;
 
         sideDir = new Vector4(1, 0, 0, 0);
