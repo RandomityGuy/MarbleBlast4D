@@ -431,6 +431,51 @@ public struct Transform5D {
         return result;
     }
 
+    public static BiVector5 ExteriorProduct(Vector5 u, Vector5 v)
+    {
+        /*
+         *  xy: u.x * v.y - u.y * v.x,
+            xz: u.x * v.z - u.z * v.x,
+            xw: -u.w * v.x + u.x * v.w,
+            yz: u.y * v.z - u.z * v.y,
+            yw: -u.w * v.y + u.y * v.w,
+            zw: -u.w * v.z + u.z * v.w,
+         */
+
+        //var a1 = R400.e1 * u.x + R400.e2 * u.y + R400.e3 * u.z + R400.e4 * u.w;
+        //var a2 = R400.e1 * v.x + R400.e2 * v.y + R400.e3 * v.z + R400.e4 * v.w;
+
+        //var prod = a1 ^ a2;
+        //return new BiVector3(prod[5], prod[6], prod[7], prod[8], prod[9], prod[10]);
+
+        /*
+			res[6]=b[2]*a[1]-b[1]*a[2];
+			res[7]=b[3]*a[1]-b[1]*a[3];
+			res[8]=b[4]*a[1]-b[1]*a[4];
+			res[9]=b[5]*a[1]-b[1]*a[5];
+			res[10]=b[3]*a[2]-b[2]*a[3];
+			res[11]=b[4]*a[2]-b[2]*a[4];
+			res[12]=b[5]*a[2]-b[2]*a[5];
+			res[13]=b[4]*a[3]-b[3]*a[4];
+			res[14]=b[5]*a[3]-b[3]*a[5];
+			res[15]=b[5]*a[4]-b[4]*a[5];
+			
+         */
+
+        return new BiVector5(
+            v.y * u.x - v.x * u.y,
+            v.z * u.x - v.x * u.z,
+            v.w * u.x - v.x * u.w,
+            v.v * u.x - v.x * u.v,
+            v.z * u.y - v.y * u.z,
+            v.w * u.y - v.y * u.w,
+            v.v * u.y - v.y * u.v,
+            v.w * u.z - v.z * u.w,
+            v.v * u.z - v.z * u.v,
+            v.v * u.w - v.w * u.v
+        );
+    }
+
     //####################################################################################################
     //#  DIMENSION SPECIFIC HELPERS
     //####################################################################################################

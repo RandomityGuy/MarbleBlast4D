@@ -20,30 +20,30 @@ public class GenerateMeshes4D : MonoBehaviour {
         GenerateDuoPrism("disk24", "disk24", true, true).Build("duocylinder");
         GenerateDuoPrism("disk24", "disk24", true, true, true).Build("duocylinder_2mat");
         GenerateDuoPrism("disk24", "disk24_half", true, true).Build("duocylinder_half");
-        GeneratePathExtrude("disk24_offset", "icosphere.fbx").MergeVerts(0.001f).Smoothen().Build("torisphere");
-        GenerateRevolve("icosphere.fbx", 24, new Vector3(0, 0, 2.5f)).MergeVerts(0.001f).Smoothen().Build("spheritorus");
-        GenerateRevolve("icosphere.fbx", 12, new Vector3(0, 0, 4), 180.0f).Smoothen().Build("spheritorus_half");
-        GenerateRevolve("torus_lowpoly.fbx", 16, new Vector3(0, 0, 1), 360.0f).MergeVerts(0.001f).Smoothen().Build("tiger");
-        GenerateRevolve("torus_lowpoly.fbx", 8, new Vector3(0, 0, 1), 180.0f).MergeVerts(0.001f).Smoothen().Build("tiger_half");
-        GenerateRevolve("torus2_lowpoly.fbx", 16, new Vector3(0, 0, 2), 360.0f).MergeVerts(0.001f).Smoothen().Build("ditorus");
-        GenerateRevolve("torus2_lowpoly.fbx", 8, new Vector3(0, 0, 2), 180.0f).MergeVerts(0.001f).Smoothen().Build("ditorus_half");
-        Generate4DFlat("icosphere.fbx").Build("flat_sphere");
-        Generate4DHoleFlat("icosphere_hipoly.fbx", 0.5f).Build("flat_sphere_hole");
-        Generate4DHoleFlat("icosphere.fbx", 0.5f).Build("flat_sphere_hole_low");
-        Generate4DExtrude("icosphere.fbx", 1.0f).Build("spherinder");
-        Generate4DExtrude("icosphere.fbx", 1.0f, null, false, false).Smoothen().Build("spherinder_nocaps");
-        Generate4DExtrude("icosphere_hipoly.fbx", 1.0f, null, false, false).Smoothen().Build("spherinder_hipoly_nocaps").FlipNormals().Build("spherinder_hipoly_inv");
+        GeneratePathExtrude("disk24_offset", LoadMesh3D("icosphere.fbx")).MergeVerts(0.001f).Smoothen().Build("torisphere");
+        GenerateRevolve(LoadMesh3D("icosphere.fbx"), 24, new Vector3(0, 0, 2.5f)).MergeVerts(0.001f).Smoothen().Build("spheritorus");
+        GenerateRevolve(LoadMesh3D("icosphere.fbx"), 12, new Vector3(0, 0, 4), 180.0f).Smoothen().Build("spheritorus_half");
+        GenerateRevolve(LoadMesh3D("torus_lowpoly.fbx"), 16, new Vector3(0, 0, 1), 360.0f).MergeVerts(0.001f).Smoothen().Build("tiger");
+        GenerateRevolve(LoadMesh3D("torus_lowpoly.fbx"), 8, new Vector3(0, 0, 1), 180.0f).MergeVerts(0.001f).Smoothen().Build("tiger_half");
+        GenerateRevolve(LoadMesh3D("torus2_lowpoly.fbx"), 16, new Vector3(0, 0, 2), 360.0f).MergeVerts(0.001f).Smoothen().Build("ditorus");
+        GenerateRevolve(LoadMesh3D("torus2_lowpoly.fbx"), 8, new Vector3(0, 0, 2), 180.0f).MergeVerts(0.001f).Smoothen().Build("ditorus_half");
+        Generate4DFlat(LoadMesh3D("icosphere.fbx")).Build("flat_sphere");
+        Generate4DHoleFlat(LoadMesh3D("icosphere_hipoly.fbx"), 0.5f).Build("flat_sphere_hole");
+        Generate4DHoleFlat(LoadMesh3D("icosphere.fbx"), 0.5f).Build("flat_sphere_hole_low");
+        Generate4DExtrude(LoadMesh3D("icosphere.fbx"), 1.0f).Build("spherinder");
+        Generate4DExtrude(LoadMesh3D("icosphere.fbx"), 1.0f, null, false, false).Smoothen().Build("spherinder_nocaps");
+        Generate4DExtrude(LoadMesh3D("icosphere_hipoly.fbx"), 1.0f, null, false, false).Smoothen().Build("spherinder_hipoly_nocaps").FlipNormals().Build("spherinder_hipoly_inv");
         GenerateDuoPrism("disk24", "square", true).Build("cubinder");
         GenerateDuoPrism("disk24", "square_open", true).Build("cubinder_halfcap");
-        Generate4DExtrude("trirect.fbx", 1.0f, null).Build("trirect_prism_allcaps");
-        Generate4DExtrude("wedge.fbx", 1.0f).Scale(1.0f, 0.4f, 1.0f, 1.0f).Build("wedge_prism");
-        Generate4DExtrude("tetrahedron.fbx", 0.2f, null, false).Build("tetra_prism");
-        Generate4DPyramid("icosphere.fbx", 1.0f, null, false).Smoothen().Build("hyper_cone");
-        Generate4DPyramid("icosphere.fbx", 0.6f, null, false).Smoothen().Build("spike");
-        Generate4DTruncatedPyramid("cube_quads.fbx", 0.2f, 0.5f, null, false).Build("truncated_pyramid");
-        Generate4DExtrude("icosahedron.fbx", 1.0f).Build("icosa_cylinder");
-        Generate4DExtrude("icosahedron.fbx", 1.0f, null, false, false).Build("icosa_cylinder_uncapped");
-        Generate4DPyramid("icosahedron.fbx", 1.0f, null, false).Build("icosa_pyramid_uncapped");
+        Generate4DExtrude(LoadMesh3D("trirect.fbx"), 1.0f, null).Build("trirect_prism_allcaps");
+        Generate4DExtrude(LoadMesh3D("wedge.fbx"), 1.0f).Scale(1.0f, 0.4f, 1.0f, 1.0f).Build("wedge_prism");
+        Generate4DExtrude(LoadMesh3D("tetrahedron.fbx"), 0.2f, null, false).Build("tetra_prism");
+        Generate4DPyramid(LoadMesh3D("icosphere.fbx"), 1.0f, null, false).Smoothen().Build("hyper_cone");
+        Generate4DPyramid(LoadMesh3D("icosphere.fbx"), 0.6f, null, false).Smoothen().Build("spike");
+        Generate4DTruncatedPyramid(LoadMesh3D("cube_quads.fbx"), 0.2f, 0.5f, null, false).Build("truncated_pyramid");
+        Generate4DExtrude(LoadMesh3D("icosahedron.fbx"), 1.0f).Build("icosa_cylinder");
+        Generate4DExtrude(LoadMesh3D("icosahedron.fbx"), 1.0f, null, false, false).Build("icosa_cylinder_uncapped");
+        Generate4DPyramid(LoadMesh3D("icosahedron.fbx"), 1.0f, null, false).Build("icosa_pyramid_uncapped");
         OFFParser.LoadOFF4D("Pentachoron").Build("5cell");
         OFFParser.LoadOFF4D("Hexadecachoron").Build("16cell").GeoPoke().Build("128cell");
         OFFParser.LoadOFF4D("Icositetrachoron").Build("24cell");
@@ -55,8 +55,13 @@ public class GenerateMeshes4D : MonoBehaviour {
         OFFParser.LoadOFF4D("Hexacosichoron").Smoothen().Build("600cell_smooth");
         OFFParser.LoadOFF4D("Hexacosichoron").Perturb(0.2f).Smoothen().Build("asteroid");
         Color600Cell(OFFParser.LoadOFF4D("Hexacosichoron")).Build("600cell_colored");
-        MergeMeshes4D("Table").Build("table");
+        MergeMeshes4D(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Modeling/Table.prefab")).Build("table");
         Debug.Log("Done!");
+    }
+
+    static Mesh LoadMesh3D(string filepath)
+    {
+        return AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
     }
 
     //#############################################################################
@@ -94,8 +99,8 @@ public class GenerateMeshes4D : MonoBehaviour {
     }
 
     private static void ConvexCheck(Vector3 a, Vector3 b, Vector3 c, Vector3 center) {
-        float tsp = Vector3.Dot(Vector3.Cross(a - center, b - center), c - center);
-        Debug.Assert(tsp > 0.0f, "Mesh is not convex enough! " + tsp);
+        //float tsp = Vector3.Dot(Vector3.Cross(a - center, b - center), c - center);
+        //Debug.Assert(tsp > 0.0f, "Mesh is not convex enough! " + tsp);
     }
 
     private static void AddFlatCube(Mesh4D mesh4D, Matrix4x4 rotate, Vector4 offset, bool parity = false) {
@@ -115,14 +120,14 @@ public class GenerateMeshes4D : MonoBehaviour {
     //#############################################################################
     //# 4D Generation
     //#############################################################################
-    private static Mesh4DBuilder GenerateFlatCube() {
+    public static Mesh4DBuilder GenerateFlatCube() {
         //Create a new mesh4D
         Mesh4D mesh4D = new Mesh4D();
         AddFlatCube(mesh4D, Matrix4x4.identity, Vector4.zero);
         return new Mesh4DBuilder(mesh4D);
     }
 
-    private static Mesh4DBuilder GenerateFlatTetrahedron() {
+    public static Mesh4DBuilder GenerateFlatTetrahedron() {
         //Create a new mesh4D
         Mesh4D mesh4D = new Mesh4D();
 
@@ -139,7 +144,7 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    private static Mesh4DBuilder GenerateHyperCube(bool top = true, bool bottom = true) {
+    public static Mesh4DBuilder GenerateHyperCube(bool top = true, bool bottom = true) {
         //Create a new mesh4D
         Mesh4D mesh4D = new Mesh4D();
 
@@ -155,7 +160,7 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    private static Mesh4DBuilder GenerateHyperCubeSD(int n, bool bottomFace = true) {
+    public static Mesh4DBuilder GenerateHyperCubeSD(int n, bool bottomFace = true) {
         //Create a new mesh4D
         Mesh4D mesh4D = new Mesh4D();
         float offset = (n - 1.0f) * 0.5f;
@@ -187,7 +192,7 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    private static Mesh4DBuilder GenerateRampPrism() {
+    public static Mesh4DBuilder GenerateRampPrism() {
         //Create a new mesh4D
         Mesh4D mesh4D = new Mesh4D();
 
@@ -227,7 +232,7 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    private static Mesh4DBuilder GenerateFlatHalfCube() {
+    public static Mesh4DBuilder GenerateFlatHalfCube() {
         //Create a new mesh4D
         Mesh4D mesh4D = new Mesh4D();
 
@@ -242,7 +247,7 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    private static Mesh4DBuilder GenerateDuoPrism(string surface1, string surface2, bool biSmooth1 = false, bool biSmooth2 = false, bool twoMaterials = false, bool halfOnly = false) {
+    public static Mesh4DBuilder GenerateDuoPrism(string surface1, string surface2, bool biSmooth1 = false, bool biSmooth2 = false, bool twoMaterials = false, bool halfOnly = false) {
         Mesh4D mesh4D = new Mesh4D(twoMaterials ? 2 : 1);
 
         GenerateDuoPrismHalf(mesh4D, surface1, surface2, false, biSmooth1);
@@ -253,7 +258,7 @@ public class GenerateMeshes4D : MonoBehaviour {
         }
         return new Mesh4DBuilder(mesh4D);
     }
-    private static void GenerateDuoPrismHalf(Mesh4D mesh4D, string chainName, string surfaceName, bool reverse, bool biSmooth) {
+    public static void GenerateDuoPrismHalf(Mesh4D mesh4D, string chainName, string surfaceName, bool reverse, bool biSmooth) {
         //Load the line chain and surface for duo prism
         List<OFFParser.Line2D> lines = OFFParser.LoadOBJ2D(chainName);
         Mesh surface = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Editor/Surface/" + surfaceName + ".fbx");
@@ -335,12 +340,12 @@ public class GenerateMeshes4D : MonoBehaviour {
         }
     }
 
-    public static Mesh4DBuilder GenerateRevolve(string filepath, int segments, float revAngle = 360.0f) {
-        return GenerateRevolve(filepath, segments, Vector3.zero, revAngle);
+    public static Mesh4DBuilder GenerateRevolve(Mesh mesh3D, int segments, float revAngle = 360.0f) {
+        return GenerateRevolve(mesh3D, segments, Vector3.zero, revAngle);
     }
-    public static Mesh4DBuilder GenerateRevolve(string filepath, int segments, Vector3 offset, float revAngle = 360.0f) {
+    public static Mesh4DBuilder GenerateRevolve(Mesh mesh3D, int segments, Vector3 offset, float revAngle = 360.0f) {
         //Get the primitive mesh from a GameObject.
-        Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
+        // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
 
         //Create a new mesh4D
         Mesh4D mesh4D = new Mesh4D(mesh3D.subMeshCount);
@@ -395,9 +400,9 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    private static Mesh4DBuilder Generate4DHoleExtrude(string filepath, float thickness, float length, bool capTop = true, bool capBottom = true, bool innerWalls = true) {
+    public static Mesh4DBuilder Generate4DHoleExtrude(Mesh mesh3D, float thickness, float length, bool capTop = true, bool capBottom = true, bool innerWalls = true) {
         //Get the primitive mesh from a GameObject.
-        Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
+        // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
 
         //Create a new mesh4D
         Mesh4D mesh4D = new Mesh4D(mesh3D.subMeshCount);
@@ -459,9 +464,9 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    private static Mesh4DBuilder Generate4DFlat(string filepath, Vector3[] centerBias = null, bool centerAbsolute = false) {
+    public static Mesh4DBuilder Generate4DFlat(Mesh mesh3D, Vector3[] centerBias = null, bool centerAbsolute = false) {
         //Get the primitive mesh from a GameObject.
-        Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
+        // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
 
         //Create a new mesh4D
         Mesh4D mesh4D = new Mesh4D(mesh3D.subMeshCount);
@@ -488,9 +493,9 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    public static Mesh4DBuilder Generate4DHoleFlat(string filepath, float thickness, float height=0.0f) {
+    public static Mesh4DBuilder Generate4DHoleFlat(Mesh mesh3D, float thickness, float height=0.0f) {
         //Get the primitive mesh from a GameObject.
-        Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
+        // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
 
         //Create a new mesh4D
         Mesh4D mesh4D = new Mesh4D(mesh3D.subMeshCount);
@@ -524,9 +529,9 @@ public class GenerateMeshes4D : MonoBehaviour {
     }
 
     //Extrudes *FLAT* triangles (No z-depth) to *FLAT* tetras (No w-depth)
-    public static Mesh4DBuilder Generate4DExtrudeFlat(string flat3D, float length) {
+    public static Mesh4DBuilder Generate4DExtrudeFlat(Mesh mesh3D, float length) {
         //Create a new mesh4D
-        Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + flat3D);
+        // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + flat3D);
 
         //Create a new mesh5D
         Mesh4D mesh4D = new Mesh4D(mesh3D.subMeshCount);
@@ -564,15 +569,15 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    public static Mesh4DBuilder Generate4DExtrude(string filepath, float length, Vector3[] centerBias = null, bool capTop = true, bool capBottom = true, bool vertAO = true, float pushUV = 0.0f, bool shadowTop = false, bool shadowBottom = false) {
-        return Generate4DTruncatedPyramid(filepath, length, 1.0f, centerBias, capBottom, capTop, vertAO, pushUV, true, shadowBottom, shadowTop);
+    public static Mesh4DBuilder Generate4DExtrude(Mesh mesh3D, float length, Vector3[] centerBias = null, bool capTop = true, bool capBottom = true, bool vertAO = true, float pushUV = 0.0f, bool shadowTop = false, bool shadowBottom = false) {
+        return Generate4DTruncatedPyramid(mesh3D, length, 1.0f, centerBias, capBottom, capTop, vertAO, pushUV, true, shadowBottom, shadowTop);
     }
 
-    private static Mesh4DBuilder GeneratePathExtrude(string chainName, string volume3DName, bool pathSmooth = false, int numSubMeshes = 1) {
+    private static Mesh4DBuilder GeneratePathExtrude(string chainName, Mesh mesh3D, bool pathSmooth = false, int numSubMeshes = 1) {
         //Load the line chain and surface for duo prism
         Mesh4D mesh4D = new Mesh4D(numSubMeshes);
         List<OFFParser.Line2D> lines = OFFParser.LoadOBJ2D(chainName);
-        Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + volume3DName);
+        // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + volume3DName);
 
         Vector4 extrudeDir = new Vector4(0, 0, 0, 1);
         Vector3[] verts = mesh3D.vertices;
@@ -684,9 +689,9 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    public static Mesh4DBuilder Generate4DPyramid(string filepath, float length, Vector3[] centerBias = null, bool capped = true) {
+    public static Mesh4DBuilder Generate4DPyramid(Mesh mesh3D, float length, Vector3[] centerBias = null, bool capped = true) {
         //Get the primitive mesh from a GameObject.
-        Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
+        // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
 
         //Create a new mesh4D
         Mesh4D mesh4D = new Mesh4D(mesh3D.subMeshCount);
@@ -722,9 +727,9 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    private static Mesh4DBuilder Generate4DTruncatedPyramid(string filepath, float length, float truncateRatio, Vector3[] centerBias = null, bool capBottom = true, bool capTop = true, bool vertAO = true, float pushUV = 0.0f, bool extrudeCentered = false, bool shadowBottom = false, bool shadowTop = false) {
+    private static Mesh4DBuilder Generate4DTruncatedPyramid(Mesh mesh3D, float length, float truncateRatio, Vector3[] centerBias = null, bool capBottom = true, bool capTop = true, bool vertAO = true, float pushUV = 0.0f, bool extrudeCentered = false, bool shadowBottom = false, bool shadowTop = false) {
         //Get the primitive mesh from a GameObject.
-        Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
+        // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
         Vector3[] verticies = mesh3D.vertices;
         Vector2[] uvs = mesh3D.uv;
 
@@ -845,9 +850,9 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    private static Mesh4DBuilder Generate4DBumperExtrude(string filepath, float length, float truncateRatio) {
+    public static Mesh4DBuilder Generate4DBumperExtrude(Mesh mesh3D, float length, float truncateRatio) {
         //Get the primitive mesh from a GameObject.
-        Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
+        // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
         Vector3[] verticies = mesh3D.vertices;
 
         //Create a new mesh4D
@@ -884,11 +889,11 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    public static Mesh4DBuilder MergeMeshes4D(string name) {
+    public static Mesh4DBuilder MergeMeshes4D(GameObject model) {
         //Get the primitive mesh from a GameObject.
-        Debug.Log("Generating " + name + "...");
-        GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Modeling/" + name + ".prefab");
-        Debug.Assert(model != null, "Could not find model '" + name + "' in Modeling folder.");
+        // Debug.Log("Generating " + name + "...");
+        //GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Modeling/" + name + ".prefab");
+        //Debug.Assert(model != null, "Could not find model '" + name + "' in Modeling folder.");
         MeshRenderer[] renderers = model.GetComponentsInChildren<MeshRenderer>();
         Object4D[] objs4D = model.GetComponentsInChildren<Object4D>();
 
@@ -959,7 +964,7 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    private static Mesh4DBuilder GenerateFernLeaf(int segments, float length, float scaleRatio, float angle) {
+    public static Mesh4DBuilder GenerateFernLeaf(int segments, float length, float scaleRatio, float angle) {
         //Create a new mesh4D
         Mesh4D mesh4D = new Mesh4D();
         PseudoRandom._seed = 0;
@@ -1008,9 +1013,9 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    private static Mesh4DBuilder GenerateTetUVHeight(string filepath, float vScale) {
+    public static Mesh4DBuilder GenerateTetUVHeight(Mesh mesh3D, float vScale) {
         //Create a new mesh4D
-        Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
+        // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
         Debug.Assert(mesh3D != null);
         Mesh4D mesh4D = new Mesh4D(mesh3D.subMeshCount);
 

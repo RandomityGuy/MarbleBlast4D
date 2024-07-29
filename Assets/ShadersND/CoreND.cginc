@@ -6,7 +6,7 @@
 #ifndef IS_5D
 #pragma multi_compile IS_4D IS_5D
 #endif
-#pragma multi_compile __ IS_EDITOR IS_EDITOR_V
+#pragma multi_compile __ IS_EDITOR IS_EDITOR_V IS_EDITOR5D IS_EDITOR_V5D
 #if !defined(FOG) && !defined(NO_FOG)
 #pragma multi_compile __ FOG
 #endif

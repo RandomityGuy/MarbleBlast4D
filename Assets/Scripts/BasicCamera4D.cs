@@ -80,6 +80,8 @@ public class BasicCamera4D : Physical4D {
 
         Shader.DisableKeyword("IS_EDITOR");
         Shader.DisableKeyword("IS_EDITOR_V");
+        Shader.DisableKeyword("IS_EDITOR_V5D");
+        Shader.DisableKeyword("IS_EDITOR5D" );
         if (shadowCam) {
             shadowCam.SetReplacementShader(shadowShader, "RenderType");
         }

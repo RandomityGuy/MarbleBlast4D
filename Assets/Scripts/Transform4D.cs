@@ -2,6 +2,7 @@
 //#########[  GENERATED FROM TEMPLATE  ]#########
 //#########[---------------------------]#########
 #define USE_4D
+using R40;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -473,4 +474,41 @@ public struct Transform4D {
                              MakeNormal(m.GetColumn(4), m.GetColumn(0), m.GetColumn(1), m.GetColumn(2)),
                              MakeNormal(m.GetColumn(0), m.GetColumn(1), m.GetColumn(2), m.GetColumn(3)));
     }
+
+    // https://marctenbosch.com/ndphysics/NDrigidbody.pdf
+    public static BiVector3 ExteriorProduct(Vector4 u, Vector4 v)
+    {
+        /*
+         *  xy: u.x * v.y - u.y * v.x,
+            xz: u.x * v.z - u.z * v.x,
+            xw: -u.w * v.x + u.x * v.w,
+            yz: u.y * v.z - u.z * v.y,
+            yw: -u.w * v.y + u.y * v.w,
+            zw: -u.w * v.z + u.z * v.w,
+         */
+
+        //var a1 = R400.e1 * u.x + R400.e2 * u.y + R400.e3 * u.z + R400.e4 * u.w;
+        //var a2 = R400.e1 * v.x + R400.e2 * v.y + R400.e3 * v.z + R400.e4 * v.w;
+
+        //var prod = a1 ^ a2;
+        //return new BiVector3(prod[5], prod[6], prod[7], prod[8], prod[9], prod[10]);
+
+        return new BiVector3(
+            u.x * v.y - u.y * v.x,
+            u.x * v.z - u.z * v.x,
+            -u.w * v.x + u.x * v.w,
+            u.y * v.z - u.z * v.y,
+            -u.w * v.y + u.y * v.w,
+            -u.w * v.z + u.z * v.w);
+    }
+    
+    //// This took too long to figure out
+    //public static Vector4 BivectorMultVector(Vector3 a, Vector3 aW, Vector4 b)
+    //{
+    //    return new Vector4(
+    //        -a.z * b.w - a.x * b.y - a.y * b.z, 
+    //        -aW.y * b.w + a.x * b.x - aW.x * b.z,
+    //        -aW.z * b.w + a.y * b.x + aW.x * b.y,
+    //        a.z * b.x + aW.y * b.y + aW.z * b.z );
+    //}
 }

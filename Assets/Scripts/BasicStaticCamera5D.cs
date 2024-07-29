@@ -6,7 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BasicCamera5D : Physical5D {
+public class BasicStaticCamera5D : MonoBehaviour {
     public static readonly int minCheckerID = Shader.PropertyToID("_MinChecker");
     public static readonly int ditherDistID = Shader.PropertyToID("_DitherDist");
     public static readonly int ditherRadiusID = Shader.PropertyToID("_DitherRadius");
@@ -82,7 +82,6 @@ public class BasicCamera5D : Physical5D {
         Shader.DisableKeyword("IS_EDITOR_V");
         Shader.DisableKeyword("IS_EDITOR_V5D");
         Shader.DisableKeyword("IS_EDITOR5D");
-
         if (shadowCam) {
             shadowCam.SetReplacementShader(shadowShader, "RenderType");
         }

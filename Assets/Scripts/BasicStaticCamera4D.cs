@@ -1,12 +1,12 @@
 //#########[---------------------------]#########
 //#########[  GENERATED FROM TEMPLATE  ]#########
 //#########[---------------------------]#########
-#define USE_5D
+#define USE_4D
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BasicCamera5D : Physical5D {
+public class BasicStaticCamera4D : MonoBehaviour {
     public static readonly int minCheckerID = Shader.PropertyToID("_MinChecker");
     public static readonly int ditherDistID = Shader.PropertyToID("_DitherDist");
     public static readonly int ditherRadiusID = Shader.PropertyToID("_DitherRadius");
@@ -24,8 +24,8 @@ public class BasicCamera5D : Physical5D {
 
     public Shader shadowShader;
 
-    [System.NonSerialized] public Matrix5x5 camMatrix = Matrix5x5.identity;
-    [System.NonSerialized] public Vector5 position5D = Vector5.zero;
+    [System.NonSerialized] public Matrix4x4 camMatrix = Matrix4x4.identity;
+    [System.NonSerialized] public Vector4 position4D = Vector4.zero;
     [System.NonSerialized] public Camera sliceCam = null;
     [System.NonSerialized] public Camera shadowCam = null;
     [System.NonSerialized] public Camera overlayCam = null;
@@ -39,10 +39,10 @@ public class BasicCamera5D : Physical5D {
     private int alwaysOnLayer;
     private int particleLayer;
 
-    private Matrix5x5 xrCamCache = Matrix5x5.identity;
+    private Matrix4x4 xrCamCache = Matrix4x4.identity;
 
     protected virtual void Awake() {
-        position5D = (Vector5)transform.position;
+        position4D = (Vector4)transform.position;
         transform.position = Vector3.zero;
         ShadowFilter.useWireframe = false;
         ShadowFilter.UpdateGlobalOpacity();
@@ -61,7 +61,7 @@ public class BasicCamera5D : Physical5D {
     }
 
     protected virtual void Start() {
-        Texture2D lutTexture = Resources.Load<Texture2D>("LUT5D");
+        Texture2D lutTexture = Resources.Load<Texture2D>("LUT4D");
         Shader.SetGlobalTexture("_LUT", lutTexture);
         Debug.Assert(lutTexture != null);
 
@@ -82,15 +82,14 @@ public class BasicCamera5D : Physical5D {
         Shader.DisableKeyword("IS_EDITOR_V");
         Shader.DisableKeyword("IS_EDITOR_V5D");
         Shader.DisableKeyword("IS_EDITOR5D");
-
         if (shadowCam) {
             shadowCam.SetReplacementShader(shadowShader, "RenderType");
         }
     }
 
     public virtual void Reset() {
-        position5D = Vector5.zero;
-        camMatrix = Matrix5x5.identity;
+        position4D = Vector4.zero;
+        camMatrix = Matrix4x4.identity;
         ditherDist = 0.0f;
         ditherRadius = 0.0f;
     }
@@ -101,11 +100,11 @@ public class BasicCamera5D : Physical5D {
         Shader.SetGlobalFloat(ditherRadiusID, ditherRadius);
 
         //Get the view matrix
-        Matrix5x5 viewMatrix = camMatrix.transpose;
+        Matrix4x4 viewMatrix = camMatrix.transpose;
         viewMatrix.SetRow(2, -viewMatrix.GetRow(2));
 
 #if USE_4D
-        Shader.SetGlobalVector(camPositionID, -camPosition5D);
+        Shader.SetGlobalVector(camPositionID, -camPosition4D);
         Shader.SetGlobalMatrix(camMatrixID, viewMatrix);
 #elif USE_5D
         //Offset camera position slightly to prevent faces slicing exactly against camera plane
@@ -124,9 +123,9 @@ public class BasicCamera5D : Physical5D {
 #endif
     }
     
-    public virtual Vector5 camPosition5D {
-        get { return position5D; }
-        set { position5D = value; }
+    public virtual Vector4 camPosition4D {
+        get { return position4D; }
+        set { position4D = value; }
     }
     
     public void UpdateCameraMask(int shadowMode, bool sliceEnabled) {
@@ -160,10 +159,10 @@ public class BasicCamera5D : Physical5D {
         if (overlayCam) { overlayCam.fieldOfView = degrees; }
     }
 
-    public Matrix5x5 xrCamMatrix {
+    public Matrix4x4 xrCamMatrix {
         get {
             if (sliceCam.transform.hasChanged) {
-                xrCamCache = Transform5D.FromQuaternion(sliceCam.transform.localRotation);
+                xrCamCache = Transform4D.FromQuaternion(sliceCam.transform.localRotation);
                 sliceCam.transform.hasChanged = false;
             }
             return camMatrix * xrCamCache;

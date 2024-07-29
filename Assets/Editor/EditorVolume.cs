@@ -8,7 +8,8 @@ using UnityEngine;
 [InitializeOnLoadAttribute]
 public static class EditorVolume {
     public static bool isVolume = false;
-
+    public static bool isVolume5D = false;
+    
     //Register an event handler when the class is initialized
     static EditorVolume() {
         EditorApplication.playModeStateChanged -= onPlayModeState;
@@ -32,14 +33,39 @@ public static class EditorVolume {
     private static void onKeyPressed() {
         if (Event.current.rawType == EventType.KeyDown && Event.current.keyCode == KeyCode.F10) {
             isVolume = !isVolume;
+            isVolume5D = false;
+            UpdateShaders();
+        }
+        if (Event.current.rawType == EventType.KeyDown && Event.current.keyCode == KeyCode.F11)
+        {
+            isVolume = false;
+            isVolume5D = !isVolume5D;
             UpdateShaders();
         }
     }
 
     public static void UpdateShaders() {
         SceneView sv = SceneView.lastActiveSceneView;
-        Shader.DisableKeyword(isVolume ? "IS_EDITOR" : "IS_EDITOR_V");
-        Shader.EnableKeyword(isVolume? "IS_EDITOR_V" : "IS_EDITOR");
+        if (isVolume5D)
+        {
+            Shader.DisableKeyword("IS_EDITOR");
+            Shader.DisableKeyword("IS_EDITOR_V");
+            Shader.EnableKeyword("IS_EDITOR_V5D");
+        }
+        else
+        {
+            if (isVolume)
+            {
+                Shader.EnableKeyword("IS_EDITOR_V");
+                Shader.DisableKeyword("IS_EDITOR");
+            }
+            else
+            {
+                Shader.EnableKeyword("IS_EDITOR");
+                Shader.DisableKeyword("IS_EDITOR_V");
+            }
+            Shader.DisableKeyword("IS_EDITOR_V5D");
+        }
         Shader.DisableKeyword("FOG");
         Shader.SetGlobalFloat("_DitherDist", 0.0f);
         Shader.SetGlobalFloat("_DitherRadius", 0.0f);

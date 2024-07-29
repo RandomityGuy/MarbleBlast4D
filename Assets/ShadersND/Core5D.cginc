@@ -5,7 +5,7 @@
 //Globals
 Matrix5x5(_CamMatrix);
 Vector5(_CamPosition);
-#if defined(IS_EDITOR) || defined(IS_EDITOR_V)
+#if defined(IS_EDITOR) || defined(IS_EDITOR_V) || defined(IS_EDITOR5D) || defined(IS_EDITOR_V5D)
 uniform float _EditorSliceW;
 uniform float _EditorSliceV;
 #endif
@@ -75,6 +75,9 @@ struct v2f {
 #elif defined(IS_EDITOR_V)
 #define ModelToCam(XYZW, V) XYZW = float4(mul(UNITY_MATRIX_V, float4(XYZW.x, -XYZW.w, XYZW.z, 1.0)).xyz, XYZW.y - _EditorSliceW); V -= _EditorSliceV
 #define CamToModel(XYZW, V) XYZW = float4(mul(XYZW.xyz - UNITY_MATRIX_V._m03_m13_m23, (float3x3)UNITY_MATRIX_V), XYZW.w + _EditorSliceW); XYZW.yw = float2(XYZW.w, -XYZW.y); V += _EditorSliceV
+#elif defined(IS_EDITOR_V5D)
+#define ModelToCam(XYZW, V) XYZW = float4(mul(UNITY_MATRIX_V, float4(XYZW.x, -V, XYZW.z, 1.0)).xyz, V - _EditorSliceV); XYZW.w -= _EditorSliceW
+#define CamToModel(XYZW, V) XYZW = float4(mul(XYZW.xyz - UNITY_MATRIX_V._m03_m13_m23, (float3x3)UNITY_MATRIX_V), V + _EditorSliceV); float temp2 = XYZW.y; XYZW.y = V; V = -temp2; XYZW.w += _EditorSliceW
 #else
 #define ModelToCam(XYZW, V) \
   XYZW += _CamPosition; \
