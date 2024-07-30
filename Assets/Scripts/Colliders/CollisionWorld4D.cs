@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-class CollisionWorld4D
+public class CollisionWorld4D
 {
     GridBroadphase4D grid;
     List<Collider4D> entities;
@@ -38,6 +38,11 @@ class CollisionWorld4D
         Vector4 min = pos - new Vector4(radius, radius, radius, radius);
         Vector4 max = pos + new Vector4(radius, radius, radius, radius);
         return grid.BoundingSearch(min, max);
+    }
+
+    public void Build()
+    {
+        grid.Build();
     }
 }
 

@@ -81,6 +81,11 @@ public class EditorMeshBuilder4D : EditorWindow {
             var res = GenerateMeshes4D.Generate4DPyramid(selectedMesh, extrudeLength).mesh4D;
             SetMeshToSelection(res);
         }
+        if (GUILayout.Button("Extrude Truncated Pyramid"))
+        {
+            var res = GenerateMeshes4D.Generate4DTruncatedPyramid(selectedMesh, extrudeLength, extrudeTruncateRatio, null, extrudeCapBottom, extrudeCapTop, extrudeVertAO, 0, extrudeCentered, extrudeCapBottom, extrudeCapTop).mesh4D;
+            SetMeshToSelection(res);
+        }
         EditorGUILayout.EndFoldoutHeaderGroup();
 
         EditorGUILayout.BeginFoldoutHeaderGroup(true, "Revolve");
@@ -99,7 +104,7 @@ public class EditorMeshBuilder4D : EditorWindow {
 
         // Flat Operations
 
-        EditorGUILayout.BeginFoldoutHeaderGroup(true, "Flat Operations");
+        EditorGUILayout.BeginFoldoutHeaderGroup(true, "Misc Operations");
         if (GUILayout.Button("Generate Flat"))
         {
             var res = GenerateMeshes4D.Generate4DFlat(selectedMesh).mesh4D;
@@ -111,6 +116,11 @@ public class EditorMeshBuilder4D : EditorWindow {
         {
             var res = GenerateMeshes4D.Generate4DHoleFlat(selectedMesh, holeThickness, holeHeight).mesh4D;
             SetMeshToSelection(res);
+        }
+        if (GUILayout.Button("Merge Selected"))
+        {
+            var res = GenerateMeshes4D.MergeMeshes4D(Selection.activeGameObject).mesh4D;
+            CreateObject4D(res);
         }
         EditorGUILayout.EndFoldoutHeaderGroup();
 

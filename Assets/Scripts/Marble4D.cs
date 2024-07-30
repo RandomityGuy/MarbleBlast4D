@@ -25,6 +25,13 @@ public struct CollisionInfo
     public float penetration;
 }
 
+public enum MarbleMode
+{
+    Start,
+    Normal,
+    Finish
+}
+
 public class Marble4D : MonoBehaviour
 {
     public Vector4 position;
@@ -78,23 +85,39 @@ public class Marble4D : MonoBehaviour
 
     private float _totalTime;
 
+    bool isOob;
+
+    [System.NonSerialized] public MarbleMode mode;
+
     public MarbleCameraController4D camera;
+    [System.NonSerialized] public MarbleWorld4D world;
+
+    Object4D obj4D;
 
     List<CollisionInfo> contacts = new List<CollisionInfo>();
 
     // Start is called before the first frame update
     void Start()
     {
-        lastRenderedPosition = this.gameObject.GetComponent<Object4D>().worldPosition4D;
+        obj4D = this.gameObject.GetComponent<Object4D>();
+        lastRenderedPosition = obj4D.worldPosition4D;
         position = lastRenderedPosition;
         orientation = new Rotor4D();
+        mode = MarbleMode.Start;
     }
 
     // Update is called once per frame
     void Update()
     {
         this.gameObject.transform.position = Transform4D.XYZ(position); // Transform4D.XYZ(lastRenderedPosition) + Transform4D.XYZ(velocity) * Time.deltaTime;
-        this.gameObject.GetComponent<Object4D>().positionW = position.w; // lastRenderedPosition.w + velocity.w * Time.deltaTime;
+        obj4D.positionW = position.w; // lastRenderedPosition.w + velocity.w * Time.deltaTime;
+    }
+
+    public void SetPosition(Vector4 pos)
+    {
+        position = pos;
+        lastRenderedPosition = pos;
+        this.gameObject.GetComponent<Object4D>().localPosition4D = pos;
     }
 
     private void FixedUpdate()
@@ -127,43 +150,76 @@ public class Marble4D : MonoBehaviour
         var deltaOmega = omega * Time.fixedDeltaTime / 2;
 
         orientation = orientation - (deltaOmega * orientation);
-        
-        this.gameObject.GetComponent<Object4D>().localRotation4D = orientation.ToMatrix();
+
+        obj4D.localRotation4D = orientation.ToMatrix();
     }
 
     void FindContacts()
     {
         Collider4D.Hit hit = Collider4D.Hit.Empty;
-        foreach (KeyValuePair<int, ColliderGroup4D> kv in Collider4D.colliders)
+        var colliders = world.collisionWorld4D.SphereIntersection(position, _radius);
+        foreach (Collider4D collider in colliders)
         {
-            //Cache object transforms for this group
-            ColliderGroup4D colliderGroup = kv.Value;
-            Object4D colliderObj = colliderGroup.colliders[0].obj4D;
-            if (colliderObj == null)
-            {
-                LogReport.Error("Collider4D was not removed properly.");
-                continue;
-            }
-            if (!colliderObj.isActiveAndEnabled) { continue; }
-            Transform4D localToWorld4D = colliderObj.WorldTransform4D();
+            if (collider.gameObject == this.gameObject) continue;
+
+            Transform4D localToWorld4D = collider.obj4D.WorldTransform4D();
             Transform4D worldToLocal4D = localToWorld4D.inverse;
-            if (!colliderGroup.IntersectsAABB(localToWorld4D, worldToLocal4D, position,  _radius)) { continue; }
-            foreach (Collider4D collider in colliderGroup.colliders)
+
+            if (collider.Collide(localToWorld4D, worldToLocal4D, position, _radius, ref hit))
             {
-                if (collider.gameObject == this.gameObject) continue;
-                if (collider.Collide(localToWorld4D, worldToLocal4D, position, _radius, ref hit))
+                switch (collider.type)
                 {
-                    var coll = new CollisionInfo();
-                    coll.normal = hit.displacement.normalized;
-                    coll.restitution = 1f;
-                    coll.friction = 1;
-                    coll.velocity = default(Vector4);
-                    coll.point = position + hit.displacement;
-                    coll.penetration = 0;
-                    contacts.Add(coll);
+                    case ColliderType.Collideable:
+                    {
+                        var coll = new CollisionInfo();
+                        coll.normal = hit.displacement.normalized;
+                        coll.restitution = 1f;
+                        coll.friction = 1;
+                        coll.velocity = default(Vector4);
+                        coll.point = position + hit.displacement;
+                        coll.penetration = 0;
+                        contacts.Add(coll);
+                    }
+                    break;
+
+                    case ColliderType.Finish:
+                    {
+                        world.TouchFinish();
+                    }
+                    break;
                 }
             }
         }
+        //        foreach (KeyValuePair<int, ColliderGroup4D> kv in Collider4D.colliders)
+        //{
+        //    //Cache object transforms for this group
+        //    ColliderGroup4D colliderGroup = kv.Value;
+        //    Object4D colliderObj = colliderGroup.colliders[0].obj4D;
+        //    if (colliderObj == null)
+        //    {
+        //        LogReport.Error("Collider4D was not removed properly.");
+        //        continue;
+        //    }
+        //    if (!colliderObj.isActiveAndEnabled) { continue; }
+        //    Transform4D localToWorld4D = colliderObj.WorldTransform4D();
+        //    Transform4D worldToLocal4D = localToWorld4D.inverse;
+        //    if (!colliderGroup.IntersectsAABB(localToWorld4D, worldToLocal4D, position,  _radius)) { continue; }
+        //    foreach (Collider4D collider in colliderGroup.colliders)
+        //    {
+        //        if (collider.gameObject == this.gameObject) continue;
+        //        if (collider.Collide(localToWorld4D, worldToLocal4D, position, _radius, ref hit))
+        //        {
+        //            var coll = new CollisionInfo();
+        //            coll.normal = hit.displacement.normalized;
+        //            coll.restitution = 1f;
+        //            coll.friction = 1;
+        //            coll.velocity = default(Vector4);
+        //            coll.point = position + hit.displacement;
+        //            coll.penetration = 0;
+        //            contacts.Add(coll);
+        //        }
+        //    }
+        //}
     }
 
     void AdvancePhysics(Move mv, float dt)
@@ -185,6 +241,15 @@ public class Marble4D : MonoBehaviour
             this._applyContactForces(dt, mv, contacts, isCentered, aControl, desiredOmega, ref velocity, ref omega, ref A, out a);
             velocity += A * dt;
             omega += a * dt;
+
+            if (this.mode == MarbleMode.Start)
+            {
+                // Bruh...
+                this.velocity.z = 0;
+                this.velocity.x = 0;
+                this.velocity.w = 0;
+            }
+
             this._velocityCancel(contacts, ref velocity, ref omega, isCentered, true);
             this._totalTime += dt;
             if (contacts.Count != 0)
@@ -299,7 +364,7 @@ public class Marble4D : MonoBehaviour
                 A += contacts[j].normal * normalForce2;
             }
         }
-        if (bestSurface != -1)
+        if (bestSurface != -1 && mode != MarbleMode.Finish)
         {
             // TODO: FIX
             //bestContact.velocity - bestContact.normal * Vector3.Dot(bestContact.normal, bestContact.velocity);
@@ -311,7 +376,9 @@ public class Marble4D : MonoBehaviour
             if (vAtCMag != 0f)
             {
                 slipping = true;
-                float friction = this._kineticFriction * bestContact.friction;
+                float friction = 0.0f;
+                if (this.mode != MarbleMode.Start)
+                    friction = this._kineticFriction * bestContact.friction;
                 float angAMagnitude = friction * bestNormalForce / (radiusOfGyration * this._radius); // https://math.stackexchange.com/questions/565333/moment-of-inertia-of-a-n-dimensional-sphere
                 float AMagnitude = bestNormalForce * friction;
                 float totalDeltaV = (angAMagnitude * this._radius + AMagnitude) * dt;
@@ -345,10 +412,14 @@ public class Marble4D : MonoBehaviour
                 Vector4 Aadd = (-bestContact.normal * this._radius) * aControl;
 
                 float aAtCMag = (((-bestContact.normal * this._radius) * aadd) + Aadd).magnitude;
-                float friction2 = this._staticFriction * bestContact.friction;
+                var friction2 = 0.0f;
+                if (mode != MarbleMode.Start)
+                    friction2 = this._staticFriction * bestContact.friction;
                 if (aAtCMag > friction2 * bestNormalForce)
                 {
-                    friction2 = this._kineticFriction * bestContact.friction;
+                    friction2 = 0.0f;
+                    if (mode != MarbleMode.Start)
+                        friction2 = this._kineticFriction * bestContact.friction;
                     Aadd *= friction2 * bestNormalForce / aAtCMag;
                 }
                 A += Aadd;
@@ -360,13 +431,25 @@ public class Marble4D : MonoBehaviour
 
         }
         a += aControl;
+        if (this.mode == MarbleMode.Finish)
+        {
+            a.xy = 0;
+            a.xz = 0;
+            a.xw = 0;
+            a.yz = 0;
+            a.yw = 0;
+            a.zw = 0;
+        }
     }
 
     private Vector4 _getExternalForces(Move mv, List<CollisionInfo> contacts)
     {
+        if (this.mode == MarbleMode.Finish)
+            return this.velocity * -16.0f;
+
         Vector4 gWorkGravityDir = -currentUp;
         Vector4 A = gWorkGravityDir * this._gravity;
-        if (contacts.Count == 0)
+        if (contacts.Count == 0 && mode != MarbleMode.Start)
         {
             Vector4 sideDir;
             Vector4 motionDir;

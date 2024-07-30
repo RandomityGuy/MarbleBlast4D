@@ -727,7 +727,7 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
-    private static Mesh4DBuilder Generate4DTruncatedPyramid(Mesh mesh3D, float length, float truncateRatio, Vector3[] centerBias = null, bool capBottom = true, bool capTop = true, bool vertAO = true, float pushUV = 0.0f, bool extrudeCentered = false, bool shadowBottom = false, bool shadowTop = false) {
+    public static Mesh4DBuilder Generate4DTruncatedPyramid(Mesh mesh3D, float length, float truncateRatio, Vector3[] centerBias = null, bool capBottom = true, bool capTop = true, bool vertAO = true, float pushUV = 0.0f, bool extrudeCentered = false, bool shadowBottom = false, bool shadowTop = false) {
         //Get the primitive mesh from a GameObject.
         // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
         Vector3[] verticies = mesh3D.vertices;

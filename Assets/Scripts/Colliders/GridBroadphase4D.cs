@@ -136,7 +136,9 @@ public class GridBroadphase4D
         if (proxy == null)
         {
             Insert(obj);
-        } else {
+        } 
+        else 
+        {
             if (start.x != proxy.xMin || start.y != proxy.yMin || end.x != proxy.xMax || end.y != proxy.yMax)
             {
                 // Rebin the object
@@ -185,11 +187,9 @@ public class GridBroadphase4D
                 continue;
             var surface = this.objects[i].collider;
 
-            Transform4D localToWorld4D = surface.obj4D.WorldTransform4D();
-            Vector4 aabbMin = localToWorld4D * surface.aabbMin;
-            Vector4 aabbMax = localToWorld4D * surface.aabbMax;
-
             surface.CalculateWorldAABB();
+            Vector4 aabbMin = surface.worldAabbMin;
+            Vector4 aabbMax = surface.worldAabbMax;
 
             xMin = Math.Min(xMin, aabbMin.x);
             xMax = Math.Max(xMax, aabbMax.x);
@@ -231,9 +231,8 @@ public class GridBroadphase4D
                         continue;
                     var surface = this.objects[idx];
 
-                    Transform4D localToWorld4D = surface.collider.obj4D.WorldTransform4D();
-                    Vector4 aabbMin = localToWorld4D * surface.collider.aabbMin;
-                    Vector4 aabbMax = localToWorld4D * surface.collider.aabbMax;
+                    Vector4 aabbMin = surface.collider.worldAabbMin;
+                    Vector4 aabbMax = surface.collider.worldAabbMax;
 
                     var hullRect = new Rect(aabbMin.x, aabbMin.y, aabbMax.x - aabbMin.x, aabbMax.y - aabbMin.y);
                     
