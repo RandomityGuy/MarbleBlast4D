@@ -150,6 +150,7 @@ public class Marble4D : MonoBehaviour
         var deltaOmega = omega * Time.fixedDeltaTime / 2;
 
         orientation = orientation - (deltaOmega * orientation);
+        orientation.Normalize();
 
         obj4D.localRotation4D = orientation.ToMatrix();
     }

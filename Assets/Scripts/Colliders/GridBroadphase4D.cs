@@ -20,7 +20,7 @@ public class GridBroadphase4D
     Vector4 boundsMin;
     Vector4 boundsMax;
 
-    static int CELL_SIZE = 8;
+    static int CELL_SIZE = 16;
     static Vector2 CELL_DIV = new Vector3(CELL_SIZE, CELL_SIZE);
 
     Vector2 cellSize;
