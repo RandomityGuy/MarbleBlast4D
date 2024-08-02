@@ -15,6 +15,8 @@ public class Object4D : MonoBehaviour {
     public static readonly int ModelMatrixID = Shader.PropertyToID("_ModelMatrix");
     public static readonly int ModelMatrixITID = Shader.PropertyToID("_ModelMatrixIT");
     public static readonly int ModelPositionID = Shader.PropertyToID("_ModelPosition");
+    public static readonly int UVTransformID = Shader.PropertyToID("_UVTransform");
+    public static readonly int UVOffsetID = Shader.PropertyToID("_UVOffset");
 #if USE_5D
     public static readonly int ModelMatrixC4ID = Shader.PropertyToID("_ModelMatrix_C4");
     public static readonly int ModelMatrixR4ID = Shader.PropertyToID("_ModelMatrix_R4");
@@ -44,6 +46,9 @@ public class Object4D : MonoBehaviour {
 #if USE_4D
     private Matrix4x4 tempMatrixIT;
 #endif
+
+    public Matrix4x4 uvTransform = Matrix4x4.identity;
+    public Vector4 uvOffset = Vector4.zero;
 
     private Transform transf;
     private Transform4D cachedLocalTransform4D;
@@ -138,6 +143,8 @@ public class Object4D : MonoBehaviour {
             propBlock.SetMatrix(ModelMatrixID, transform4D.matrix);
             propBlock.SetMatrix(ModelMatrixITID, tempMatrixIT);
             propBlock.SetVector(ModelPositionID, transform4D.translation);
+            propBlock.SetMatrix(UVTransformID, uvTransform);
+            propBlock.SetVector(UVOffsetID, uvOffset);
 #elif USE_5D
             propBlock.SetVector(ModelPositionID, (Vector4)translation);
             propBlock.SetFloat(ModelPositionVID, translation.v);

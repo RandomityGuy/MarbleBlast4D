@@ -437,12 +437,12 @@ public class Mesh4D {
     }
 
     public void AddCellShadow(Vector4 a1, Vector4 a2, Vector4 A1, Vector4 A2, Vector4 b1, Vector4 b2, Vector4 B1, Vector4 B2) {
-        AddQuadShadow(a2, b2, a1, b1);
+        AddQuadShadow(a2, b2, a1, b1); 
         AddQuadShadow(A1, B1, A2, B2);
         AddQuadShadow(A1, a1, B1, b1);
         AddQuadShadow(a2, A2, b2, B2);
         AddQuadShadow(a2, a1, A2, A1);
-        AddQuadShadow(b1, b2, B1, B2);
+        AddQuadShadow(b1, b2, B1, B2); 
     }
 
     public void AddWire(Vector4 a, Vector4 b) {

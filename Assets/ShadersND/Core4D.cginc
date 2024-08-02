@@ -15,6 +15,8 @@ DEFINE_CUSTOM_LOCALS
 UNITY_DEFINE_INSTANCED_PROP(float4x4, _ModelMatrix)
 UNITY_DEFINE_INSTANCED_PROP(float4x4, _ModelMatrixIT)
 UNITY_DEFINE_INSTANCED_PROP(float4, _ModelPosition)
+UNITY_DEFINE_INSTANCED_PROP(float4x4, _UVTransform)
+UNITY_DEFINE_INSTANCED_PROP(float4, _UVOffset)
 UNITY_INSTANCING_BUFFER_END(Props)
 
 //Vertex input structure
@@ -147,7 +149,7 @@ v2f vert(vin v) {
   o.viewDir = -_CamPosition - o.uv;
   o.viewDir.xyz -= UNITY_MATRIX_V._m03_m13_m23;
 #if defined(LOCAL_UV)
-  o.uv = mul(o.uv - UNITY_ACCESS_INSTANCED_PROP(Props, _ModelPosition), UNITY_ACCESS_INSTANCED_PROP(Props, _ModelMatrixIT));
+  o.uv = mul(mul(o.uv - UNITY_ACCESS_INSTANCED_PROP(Props, _ModelPosition), UNITY_ACCESS_INSTANCED_PROP(Props, _ModelMatrixIT)), UNITY_ACCESS_INSTANCED_PROP(Props, _UVTransform)) + UNITY_ACCESS_INSTANCED_PROP(Props, _UVOffset);
 #endif
 
   //Transfer normal for lighting

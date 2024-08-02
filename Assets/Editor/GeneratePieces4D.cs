@@ -1,4 +1,5 @@
-﻿using System;
+﻿using log4net.Util;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,6 +12,10 @@ using UnityEngine;
 public class GeneratePieces4D : EditorWindow
 {
     Vector3Int tileSize = Vector3Int.one;
+    Vector4 skewX = new Vector4(1, 0, 0, 0);
+    Vector4 skewY = new Vector4(0, 1, 0, 0);
+    Vector4 skewZ = new Vector4(0, 0, 1, 0);
+    Vector4 skewW = new Vector4(0, 0, 0, 1);
     int edgeHeightUnits = 1;
     bool edgeFront;
     bool edgeBack;
@@ -24,6 +29,9 @@ public class GeneratePieces4D : EditorWindow
     bool capRight;
     bool capAnth;
     bool capKenth;
+    // For the *regular* skew tiles
+    Vector2Int xwWidth = new Vector2Int(1, 1);
+    Vector4 endOffset = Vector4.zero;
 
     [MenuItem("4D/Level Builder 4D")]
     public static void Init()
@@ -37,6 +45,10 @@ public class GeneratePieces4D : EditorWindow
     {
         tileSize = EditorGUILayout.Vector3IntField("Tile Size", tileSize);
         edgeHeightUnits = EditorGUILayout.IntField("Edge Height", edgeHeightUnits);
+        skewX = EditorGUILayout.Vector4Field("Skew X", skewX);
+        skewY = EditorGUILayout.Vector4Field("Skew Y", skewY);
+        skewZ = EditorGUILayout.Vector4Field("Skew Z", skewZ);
+        skewW = EditorGUILayout.Vector4Field("Skew W", skewW);
         EditorGUILayout.BeginHorizontal();
         edgeFront = EditorGUILayout.Toggle(new GUIContent("Edge Front"), edgeFront);
         edgeBack = EditorGUILayout.Toggle(new GUIContent("Edge Back"), edgeBack);
@@ -63,14 +75,26 @@ public class GeneratePieces4D : EditorWindow
         EditorGUILayout.EndHorizontal();
         if (GUILayout.Button("Flat Tile"))
         {
-            GenerateTileFlat("TileFlat", tileSize.x, tileSize.y, tileSize.z, edgeFront, edgeBack, edgeLeft, edgeRight, edgeAnth, edgeKenth, capFront, capBack, capLeft, capRight, capAnth, capKenth, edgeHeightUnits * 0.25f);
+            GenerateTileFlat("TileFlat", tileSize.x, tileSize.y, tileSize.z, edgeFront, edgeBack, edgeLeft, edgeRight, edgeAnth, edgeKenth, capFront, capBack, capLeft, capRight, capAnth, capKenth, Matrix4x4.identity, edgeHeightUnits * 0.25f);
+        }
+        if (GUILayout.Button("Transformed Tile"))
+        {
+            var skewMatrix = new Matrix4x4(skewX, skewY, skewZ, skewW);
+            GenerateTileFlat("TileTrnasform", tileSize.x, tileSize.y, tileSize.z, edgeFront, edgeBack, edgeLeft, edgeRight, edgeAnth, edgeKenth, capFront, capBack, capLeft, capRight, capAnth, capKenth, skewMatrix, edgeHeightUnits * 0.25f);
+        }
+        // For the *regular* skew tiles
+        xwWidth = EditorGUILayout.Vector2IntField("XW Width", xwWidth);
+        endOffset = EditorGUILayout.Vector4Field("End Offset", endOffset);
+        if (GUILayout.Button("Skewed Tile (Regular)"))
+        {
+            GenerateTileSkew("TileSkew", endOffset, xwWidth, 0, 0);
         }
     }
 
     [MenuItem("4D/Generate 4D Level Pieces")]
     public static void Generate4DPiecesMenu()
     {
-        
+
     }
 
 
@@ -113,7 +137,7 @@ public class GeneratePieces4D : EditorWindow
         }
     }
 
-    public static Mesh4DBuilder GenerateHyperCube(bool top = true, bool bottom = true, bool left = true, bool right = true, 
+    public static Mesh4DBuilder GenerateHyperCube(bool top = true, bool bottom = true, bool left = true, bool right = true,
         bool front = true, bool back = true, bool anth = true, bool kenth = true)
     {
         //Create a new mesh4D
@@ -165,7 +189,7 @@ public class GeneratePieces4D : EditorWindow
         return new Mesh4DBuilder(mesh4D);
     }
 
-    public static void GenerateTileFlat(string name, int xSize, int zSize, int wSize, bool edgeFront, bool edgeBack, bool edgeLeft, bool edgeRight, bool edgeAnth, bool edgeKenth, bool capFront, bool capBack, bool capLeft, bool capRight, bool capAnth, bool capKenth, float edgeHeight = 0.25f)
+    public static void GenerateTileFlat(string name, int xSize, int zSize, int wSize, bool edgeFront, bool edgeBack, bool edgeLeft, bool edgeRight, bool edgeAnth, bool edgeKenth, bool capFront, bool capBack, bool capLeft, bool capRight, bool capAnth, bool capKenth, Matrix4x4 transform, float edgeHeight = 0.25f)
     {
         var flatPart = GenerateHyperCube(true, true, !edgeLeft && capLeft, !edgeRight && capRight, !edgeFront && capFront, !edgeBack && capBack, !edgeAnth && capAnth, !edgeKenth && capKenth).Scale(xSize, 0.25f, zSize, wSize);
         var mesh = new Mesh4D(2);
@@ -357,11 +381,15 @@ public class GeneratePieces4D : EditorWindow
         #endregion
         var mb = new Mesh4DBuilder(mesh);
         mb.MergeVerts(0.0001f);
+        mb.Affine(transform, Vector4.zero);
 
         var obj = CreateObject4D(mesh, name);
 
+        var o4d = obj.GetComponent<Object4D>();
+        o4d.uvOffset = new Vector4(1, 0, 1, 0);
+
         var mr = obj.GetComponent<MeshRenderer>();
-        mr.sharedMaterials = new Material[] { AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Tile.mat"), AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Edge.mat") };
+        mr.sharedMaterials = new Material[] { AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/CircleTile.mat"), AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Edge.mat") };
 
         // Now for the colliders
         var flatCollider = obj.AddComponent<BoxCollider4D>();
@@ -524,6 +552,110 @@ public class GeneratePieces4D : EditorWindow
             edgeCollider.pos = new Vector4(xSize + 0.25f, (0.25f + edgeHeight) / 2, -zSize - 0.25f, wSize + 0.25f);
             edgeCollider.size = new Vector4(0.25f, 0.25f + edgeHeight, 0.25f, 0.25f);
         }
+    }
+
+    static void AddTesseract(Mesh4D mesh, Vector4[] s, Vector4[] e)
+    {
+        //// Top
+        //mesh.AddCell(s3, s4, e3, e4, s7, s8, e7, e8);
+        //// Bottom
+        //mesh.AddCell(s2, s1, e2, e1, s6, s5, e6, e5);
+        //// Back Face
+        //mesh.AddCell(s1, s2, s3, s4, s5, s6, s7, s8);
+        //// Front face
+        //mesh.AddCell(e2, e1, e4, e3, e6, e5, e8, e7);
+        //// Left Face
+        //mesh.AddCell(s1, s3, e1, e3, s5, s7, e5, e7);
+        //// Right Face
+        //mesh.AddCell(s4, s2, e4, e2, s8, s6, e8, e6);
+        //// Anth Face
+        //mesh.AddCell(s2, s1, s4, s3, e2, e1, e4, e3);
+        //// Kenth Face
+        //mesh.AddCell(s5, s6, s7, s8, e5, e6, s7, s8);
+        // Top
+        mesh.AddCell(s[2], s[3], e[2], e[3], s[6], s[7], e[6], e[7]);
+        // Bottom
+        mesh.AddCell(s[1], s[0], e[1], e[0], s[5], s[4], e[5], e[4]);
+        // Back
+        mesh.AddCell(s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]);
+        // Front
+        mesh.AddCell(e[1], e[0], e[3], e[2], e[5], e[4], e[7], e[6]);
+        // Left
+        mesh.AddCell(s[0], s[2], e[0], e[2], s[4], s[6], e[4], e[6]);
+        // Right
+        mesh.AddCell(s[3], s[1], e[3], e[1], s[7], s[5], e[7], e[5]);
+        // Anth
+        mesh.AddCell(s[1], s[0], s[3], s[2], e[1], e[0], e[3], e[2]);
+        // Kenth
+        mesh.AddCell(s[4], s[5], s[6], s[7], e[4], e[5], e[6], e[7]);
+    }
+
+    public static void GenerateTileSkew(string name, Vector4 endOffset, Vector2Int xwWidth, byte edgeFlags, byte capFlags, float edgeHeight = 0.25f)
+    {
+        var mesh = new Mesh4D(2);
+
+
+        /*
+               e7 - - - - - - - - e8
+                | \  ~            | \  ~
+                |   \     ~       |   \     ~
+                |     \        ~  |     \        ~
+                |      e3 - - - - - - - -e4           ~
+                |       |    ~    |      ~|    ~           ~
+                |       |         |       |   ~     ~           ~
+                |       |         |    ~  |        ~     ~           ~
+                |       |         |       | ~          s7 - - - - - - - - s8
+               e5 - - - | - - - -e6       |      ~      | \        ~      | \
+                  \  ~  |           \  ~  |           ~ |   \           ~ |   \
+                    \   | ~           \   | ~           |  ~  \           |  ~  \
+                      \ |      ~        \ |      ~      |      s3 - - - - - - - - s4
+                       e1 - - - - - - - -e2           ~ |       |         |       |
+                             ~           ~     ~        |  ~    |         |       |
+                                  ~           ~     ~   |       |         |       |
+                                       ~           ~    |~      |    ~    |       |
+                                            ~          s5 - - - | - - - -s6       |
+                                                 ~        \     |  ~        \     |
+                                                      ~     \   |       ~     \   |
+                                                           ~  \ |            ~  \ |
+                                                               s1 - - - - - - - - s2
+         * 
+         */
+
+        var globalOff = new Vector4(0, 0, 0, 0);
+
+        // Start
+        var s1 = new Vector4(-xwWidth.x, 0, 0, -xwWidth.y) - globalOff;
+        var s2 = new Vector4(xwWidth.x, 0, 0, -xwWidth.y) - globalOff;
+        var s3 = new Vector4(-xwWidth.x, 0.25f + edgeHeight, 0, -xwWidth.y) - globalOff;
+        var s4 = new Vector4(xwWidth.x, 0.25f + edgeHeight, 0, -xwWidth.y) - globalOff;
+        var s5 = new Vector4(-xwWidth.x, 0, 0, xwWidth.y) - globalOff;
+        var s6 = new Vector4(xwWidth.x, 0, 0, xwWidth.y) - globalOff;
+        var s7 = new Vector4(-xwWidth.x, 0.25f + edgeHeight, 0, xwWidth.y) - globalOff;
+        var s8 = new Vector4(xwWidth.x, 0.25f + edgeHeight, 0, xwWidth.y) - globalOff;
+        // End
+        var e1 = s1 + endOffset;
+        var e2 = s2 + endOffset;
+        var e3 = s3 + endOffset;
+        var e4 = s4 + endOffset;
+        var e5 = s5 + endOffset;
+        var e6 = s6 + endOffset;
+        var e7 = s7 + endOffset;
+        var e8 = s8 + endOffset;
+
+        // The base tile
+        AddTesseract(mesh, new Vector4[] { s1, s2, s3, s4, s5, s6, s7, s8 }, new Vector4[] { e1, e2, e3, e4, e5, e6, e7, e8 });
+
+        var mb = new Mesh4DBuilder(mesh);
+        mb.MergeVerts(0.0001f);
+
+        var obj = CreateObject4D(mesh, name);
+
+        var o4d = obj.GetComponent<Object4D>();
+        o4d.uvOffset = new Vector4(0, 0.25f, 1, 0);
+        o4d.uvTransform.m11 = 0; // Don't let Y affect anything else
+
+        var mr = obj.GetComponent<MeshRenderer>();
+        mr.sharedMaterials = new Material[] { AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/CircleTile.mat"), AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Edge.mat") };
     }
 
     static GameObject CreateObject4D(Mesh4D mesh, string name)
