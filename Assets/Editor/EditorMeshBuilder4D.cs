@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.IO;
+using System.Linq;
+using Unity.Collections;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -119,8 +121,7 @@ public class EditorMeshBuilder4D : EditorWindow {
         }
         if (GUILayout.Button("Merge Selected"))
         {
-            var res = GenerateMeshes4D.MergeMeshes4D(Selection.activeGameObject).mesh4D;
-            CreateObject4D(res);
+            MergeMeshes4D(Selection.gameObjects.Where(x => x.GetComponent<Object4D>() != null).Select(x => x.GetComponent<Object4D>()).ToArray());
         }
         EditorGUILayout.EndFoldoutHeaderGroup();
 
@@ -222,6 +223,133 @@ public class EditorMeshBuilder4D : EditorWindow {
 
         var mr = selectedObject.GetComponent<MeshRenderer>();
         mr.material = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Default.mat");
+    }
+
+    public static void MergeMeshes4D(Object4D[] objs4D)
+    {
+        //Get the primitive mesh from a GameObject.
+        // Debug.Log("Generating " + name + "...");
+        //GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Modeling/" + name + ".prefab");
+        //Debug.Assert(model != null, "Could not find model '" + name + "' in Modeling folder.");
+        MeshRenderer[] renderers = objs4D.Select(x => x.GetComponent<MeshRenderer>()).ToArray();
+
+        //Awaken all Object4D components
+        foreach (Object4D obj4D in objs4D)
+        {
+            obj4D.Awake();
+            obj4D.transform.hasChanged = true;
+        }
+
+        //Get a material count for all the meshes in the object
+        Dictionary<Material, int> matMap = new();
+        Dictionary<int, Material> matMapRev = new();
+        foreach (MeshRenderer renderer in renderers)
+        {
+            if (!renderer.enabled) { continue; }
+            Material[] sharedMaterials = renderer.sharedMaterials;
+            for (int i = 0; i < sharedMaterials.Length; ++i)
+            {
+                Material sharedMaterial = sharedMaterials[i];
+                if (!matMap.ContainsKey(sharedMaterial))
+                {
+                    var cnt = matMap.Count;
+                    matMap[sharedMaterial] = matMap.Count;
+                    matMapRev[cnt] = sharedMaterial;
+                }
+            }
+        }
+
+        //Create a new Mesh4D
+        Mesh4D mesh4D = new Mesh4D(matMap.Count);
+
+        //Add meshes for each materials
+        foreach (MeshRenderer renderer in renderers)
+        {
+            //Get meshes
+            if (!renderer.enabled) { continue; }
+            Mesh mesh = renderer.GetComponent<MeshFilter>()?.sharedMesh;
+            Mesh mesh_s = renderer.GetComponent<ShadowFilter>()?.shadowMesh;
+            Mesh mesh_w = renderer.GetComponent<ShadowFilter>()?.wireMesh;
+            Debug.Assert(mesh != null, "Mesh renderer '" + renderer.name + "' did not have a mesh");
+            Object4D obj4D = renderer.GetComponent<Object4D>();
+            Debug.Assert(obj4D != null, "Mesh renderer '" + renderer.name + "' did not have an Object4D");
+            Material[] sharedMaterials = renderer.sharedMaterials;
+
+            //Merge all indices
+            for (int i = 0; i < sharedMaterials.Length; ++i)
+            {
+                Material sharedMaterial = sharedMaterials[i];
+                int[] vIndices = mesh.GetIndices(i);
+                int[] sIndices = (mesh_s ? mesh_s.GetIndices(i) : new int[0]);
+                int[] wIndices = (mesh_w ? mesh_w.GetIndices(i) : new int[0]);
+                int subMesh = matMap[sharedMaterial];
+                mesh4D.AddRawIndices(vIndices, sIndices, wIndices, subMesh);
+            }
+
+            //Merge all vertices
+            Mesh.MeshDataArray meshData = Mesh.AcquireReadOnlyMeshData(mesh);
+            NativeArray<Mesh4D.Vertex4D> vVerts = meshData[0].GetVertexData<Mesh4D.Vertex4D>(0);
+            Debug.Assert(vVerts.Length % 4 == 0, "Invalid number of vertices");
+            if (mesh_s)
+            {
+                Mesh.MeshDataArray meshData_s = Mesh.AcquireReadOnlyMeshData(mesh_s);
+                Mesh.MeshDataArray meshData_w = Mesh.AcquireReadOnlyMeshData(mesh_w);
+                NativeArray<Mesh4D.Shadow4D> sVerts = meshData_s[0].GetVertexData<Mesh4D.Shadow4D>(0);
+                NativeArray<Mesh4D.Shadow4D> wVerts = meshData_w[0].GetVertexData<Mesh4D.Shadow4D>(0);
+                Debug.Assert(sVerts.Length % 3 == 0, "Invalid number of vertices");
+                Debug.Assert(mesh.subMeshCount == mesh_s.subMeshCount);
+                mesh4D.AddRawVerts(vVerts, sVerts, wVerts, obj4D.WorldTransform4D());
+                meshData_s.Dispose();
+            }
+            else
+            {
+                mesh4D.AddRawVerts(vVerts, obj4D.WorldTransform4D());
+            }
+
+            //Dispose the mesh data correctly
+            meshData.Dispose();
+        }
+        var mb = new Mesh4DBuilder(mesh4D);
+
+        GameObject obj = new GameObject("Object4D");
+        GameObject prefabRoot = PrefabStageUtility.GetCurrentPrefabStage()?.prefabContentsRoot;
+        if (prefabRoot)
+        {
+            GameObjectUtility.SetParentAndAlign(obj, prefabRoot);
+        }
+
+        obj.AddComponent<MeshFilter>();
+        obj.AddComponent<MeshRenderer>();
+        obj.AddComponent<ShadowFilter>();
+        obj.AddComponent<Object4D>();
+
+
+        var mesh3d = new Mesh();
+        var mesh3dShadow = new Mesh();
+        var mesh3dWire = new Mesh();
+
+        mb.MergeVerts(0.001f);
+
+        mb.mesh4D.GenerateMesh(mesh3d);
+        mb.mesh4D.GenerateShadowMesh(mesh3dShadow);
+        mb.mesh4D.GenerateWireMesh(mesh3dWire);
+
+        var mf = obj.GetComponent<MeshFilter>();
+        mf.mesh = mesh3d;
+
+        var sf = obj.GetComponent<ShadowFilter>();
+        sf.shadowMesh = mesh3dShadow;
+        sf.wireMesh = mesh3dWire;
+
+        var mr = obj.GetComponent<MeshRenderer>();
+        mr.sharedMaterials = new Material[matMapRev.Count];
+        for (int i = 0; i < matMapRev.Count; i++)
+        {
+            mr.sharedMaterials[i] = matMapRev[i];
+        }
+
+        Undo.RegisterCreatedObjectUndo(obj, "Create " + obj.name);
+        Selection.activeObject = obj;
     }
 
     private void OnSelectionChange()

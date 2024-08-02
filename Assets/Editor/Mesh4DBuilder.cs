@@ -363,6 +363,16 @@ public class Mesh4DBuilder {
             UpdateNearestVert(ref v.vd, uniqueVerts, minDistSq);
             vArray[i] = v;
         }
+        // Shadow merge
+        List<Mesh4D.Shadow4D> sArray = mesh4D.sArray;
+        Debug.Assert(sArray.Count % 4 == 0);
+        uniqueVerts = new();
+        for (int i = 0; i < sArray.Count; ++i)
+        {
+            Mesh4D.Shadow4D v = sArray[i];
+            UpdateNearestVert(ref v.vertex, uniqueVerts, minDistSq);
+            sArray[i] = v;
+        }
         return this;
     }
 

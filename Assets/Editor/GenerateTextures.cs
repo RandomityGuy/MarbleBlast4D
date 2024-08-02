@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using Unity.XR.CoreUtils;
 using UnityEditor;
 using UnityEngine;
 
@@ -19,6 +20,14 @@ public class GenerateTextures : MonoBehaviour {
         GenerateVoronoi("Flagstone", 128, 20, 10.0f, 0.25f, Voronoi.EDGE);
         GenerateVoronoi("Ice", 128, 25, 1000.0f, 1.0f, Voronoi.CELL);
         GenerateBlob("Star", 64, 0.15f, 30.0f, 1.5f);
+    }
+
+    [MenuItem("4D/Generate MB Textures")]
+    public static void GenerateMBTextures()
+    {
+        GenerateGridTexture("Edge", 32, Color.white, Color.black);
+        GenerateFractalNoiseMarble("Marble", 128 / 2, 8, 2.0f, 1.0f, 1.5f, true);
+        // GenerateMarbleTexture("Marble", 32);
     }
 
     private static string MakeTexturePath(string name, bool resource) {
@@ -45,6 +54,73 @@ public class GenerateTextures : MonoBehaviour {
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+    }
+
+    private static void GenerateGridTexture(string name, int texSize, Color col1, Color col2)
+    {
+        string path = MakeTexturePath(name, false);
+        Texture3D texture = LoadOrCreateTexture(path, texSize, true);
+        // Base
+        for (int i = 0; i < texSize; ++i)
+        {
+            for (int j = 0; j < texSize; ++j)
+            {
+                for (int k = 0; k < texSize; ++k) {
+                    texture.SetPixel(i, j, k, col1);
+                }
+            }
+        }
+        //Edges
+        for (int i = 0; i < texSize; i++)
+        {
+            texture.SetPixel(i, 0, 0, col2);
+            texture.SetPixel(0, i, 0, col2);
+            texture.SetPixel(0, 0, i, col2);
+            texture.SetPixel(i, texSize - 1, texSize - 1, col2);
+            texture.SetPixel(texSize - 1, i, texSize - 1, col2);
+            texture.SetPixel(texSize - 1, texSize - 1, i, col2);
+            texture.SetPixel(texSize - 1, i, 0, col2);
+            texture.SetPixel(0, i, texSize - 1, col2);
+            texture.SetPixel(i, texSize - 1, 0, col2);
+            texture.SetPixel(0, texSize - 1, i, col2);
+            texture.SetPixel(texSize - 1, 0, i, col2);
+            texture.SetPixel(i, 0, texSize - 1, col2);
+            //for (int j = 0; j < 3; ++j)
+            //{
+            //    for (int k = 0; k < 3; ++k)
+            //    {
+            //        texture.SetPixel(i, j, k, col2);
+            //        texture.SetPixel(i, texSize - j, texSize - k, col2);
+
+            //        texture.SetPixel(j, i, k, col2);
+            //        texture.SetPixel(texSize - j, i, texSize - k, col2);
+
+            //        texture.SetPixel(j, k, i, col2);
+            //        texture.SetPixel(texSize - j, texSize - k, i, col2);
+            //    }
+            //}
+        }
+        SaveTexture(path, texture);
+    }
+
+    private static void GenerateMarbleTexture(string name, int texSize)
+    {
+        string path = MakeTexturePath(name, false);
+        Texture3D texture = LoadOrCreateTexture(path, texSize, true);
+        // Base
+        for (int i = 0; i < texSize; ++i)
+        {
+            for (int j = 0; j < texSize; ++j)
+            {
+                for (int k = 0; k < texSize; ++k)
+                {
+                    var fbmRes = FBM(new Vector3(i / (float)texSize, j / (float)texSize, k / (float)texSize), 9);
+                    var s1 = 9.0f * new Vector4(fbmRes, fbmRes, fbmRes, 0) + new Vector4(0, 23, 21, 0);
+                    var O = 0.55f * new Vector4(Mathf.Cos(s1.x), Mathf.Cos(s1.y), Mathf.Cos(s1.z), Mathf.Cos(s1.w)) + new Vector4(0.5f, 0.5f, 0.5f, 0.5f);
+                    texture.SetPixel(i, j, k, new Color(O.x, O.y, O.z));
+                }
+            }
+        }
     }
 
     private static void Dilate(string origName, string newName) {
@@ -89,6 +165,42 @@ public class GenerateTextures : MonoBehaviour {
                         scale *= scaleFactor;
                     }
                     col /= maxIters;
+                    texture.SetPixel(i, j, k, col);
+                }
+            }
+        }
+        SaveTexture(newPath, texture);
+    }
+
+    private static void GenerateFractalNoiseMarble(string newName, int res, int maxIters, float alpha, float startScale, float scaleFactor, bool color)
+    {
+        string newPath = MakeTexturePath(newName, false);
+        Texture3D texture = LoadOrCreateTexture(newPath, res, color);
+        for (int i = 0; i < res; ++i)
+        {
+            float fx = i / (float)res;
+            for (int j = 0; j < res; ++j)
+            {
+                float fy = j / (float)res;
+                for (int k = 0; k < res; ++k)
+                {
+                    float fz = k / (float)res;
+                    Color col = Color.clear;
+                    float scale = startScale;
+                    for (int iter = 0; iter < maxIters; ++iter)
+                    {
+                        float nx = (fx + iter * 0.11f) % 1.0f;
+                        float ny = (fy + iter * 0.17f) % 1.0f;
+                        float nz = (fz + iter * 0.31f) % 1.0f;
+                        Color c = Noise(nx, ny, nz, scale, 1.0f, 0.1f, color);
+                        col += alpha * new Color(Mathf.Abs(c.r), Mathf.Abs(c.g), Mathf.Abs(c.b), 1.0f);
+                        scale *= scaleFactor;
+                    }
+                    col /= maxIters;
+                    col *= 1.5f;
+                    col.r *= 1.5f;
+                    col.g *= 1.35f;
+                    col.b *= 1.2f;
                     texture.SetPixel(i, j, k, col);
                 }
             }
@@ -163,6 +275,20 @@ public class GenerateTextures : MonoBehaviour {
         } else {
             return new Color(r * alpha + beta, r * alpha + beta, r * alpha + beta, 0.0f);
         }
+    }
+
+    public static float FBM(Vector3 pos, int octaves)
+    {
+        var qx = Perlin.Fbm(pos, octaves);
+        var qy = Perlin.Fbm(pos + new Vector3(1.0f, 1.0f, 1.0f), octaves);
+        var qz = Perlin.Fbm(pos + new Vector3(-1.0f, 2.0f, -1.0f), octaves);
+
+        var rx = Perlin.Fbm(pos + new Vector3(qx + 0.23f, qy + 0.57f, qz + 0.74f), octaves);
+        var ry = Perlin.Fbm(pos + new Vector3(qx + 0.55f, qy + 0.73f, qz + 0.35f), octaves);
+        var rz = Perlin.Fbm(pos + new Vector3(qx + 0.12f, qy + 0.23f, qz + 0.85f), octaves);
+
+        var f = Perlin.Fbm(pos + new Vector3(rx, ry, rz), octaves);
+        return f;
     }
 
     public static void GenerateVoronoi(string name, int res, int numPts, float sharpness, float minBrightness, Voronoi mode, bool rgbColor = false) {

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-class GridBroadphaseProxy
+class GridBroadphaseProxy4D
 {
     public int index;
     public Collider4D collider;
@@ -27,8 +27,8 @@ public class GridBroadphase4D
 
     List<int>[,] cells = new List<int>[CELL_SIZE, CELL_SIZE];
 
-    List<GridBroadphaseProxy> objects = new();
-    Dictionary<Collider4D, GridBroadphaseProxy> objectToProxy = new();
+    List<GridBroadphaseProxy4D> objects = new();
+    Dictionary<Collider4D, GridBroadphaseProxy4D> objectToProxy = new();
 
     int searchKey = 0;
     bool built = false;
@@ -49,7 +49,7 @@ public class GridBroadphase4D
         if (!built)
         {
             int idx = objects.Count;
-            objects.Add(new GridBroadphaseProxy
+            objects.Add(new GridBroadphaseProxy4D
             {
                 collider = collider,
                 xMin = 1000,
@@ -63,7 +63,7 @@ public class GridBroadphase4D
         else
         {
             int idx = objects.Count;
-            GridBroadphaseProxy proxy = new GridBroadphaseProxy
+            var proxy = new GridBroadphaseProxy4D
             {
                 collider = collider,
                 xMin = 1000,
@@ -81,10 +81,10 @@ public class GridBroadphase4D
             Vector4 queryMax = Vector4.Min(localToWorld4D * collider.aabbMax, boundsMax);
             Vector2Int start = new Vector2Int(
                 (int)((queryMin.x - boundsMin.x) / cellSize.x),
-                (int)((queryMin.y - boundsMin.y) / cellSize.y));
+                (int)((queryMin.z - boundsMin.z) / cellSize.y));
             Vector2Int end = new Vector2Int(
                 (int)((queryMax.x - boundsMin.x) / cellSize.x),
-                (int)((queryMax.y - boundsMin.y) / cellSize.y));
+                (int)((queryMax.z - boundsMin.z) / cellSize.y));
 
             for (int i = start.x; i <= end.x; i++)
             {
@@ -105,7 +105,7 @@ public class GridBroadphase4D
         if (!objectToProxy.ContainsKey(obj))
             return;
 
-        GridBroadphaseProxy proxy = objectToProxy[obj];
+        var proxy = objectToProxy[obj];
         for (int i = proxy.xMin; i <= proxy.xMax + 1; i++)
         {
             for (int j = proxy.yMin; j <= proxy.yMax + 1; j++)
@@ -128,10 +128,10 @@ public class GridBroadphase4D
 
         obj.CalculateWorldAABB();
 
-        var queryMin = new Vector2(Math.Max(aabbMin.x, boundsMin.x), Math.Max(aabbMin.y, boundsMin.y));
-        var queryMax = new Vector2(Math.Min(aabbMax.x, boundsMax.x), Math.Min(aabbMax.y, boundsMax.y));
-        var start = new Vector2Int((int)Math.Floor((queryMax.x - boundsMin.x) / cellSize.x), (int)Math.Floor((queryMin.y - boundsMin.y) / cellSize.y));
-        var end = new Vector2Int((int)Math.Floor((queryMax.x - boundsMin.x) / cellSize.x), (int)Math.Floor((queryMax.y - boundsMin.y) / cellSize.y));
+        var queryMin = new Vector2(Math.Max(aabbMin.x, boundsMin.x), Math.Max(aabbMin.z, boundsMin.z));
+        var queryMax = new Vector2(Math.Min(aabbMax.x, boundsMax.x), Math.Min(aabbMax.z, boundsMax.z));
+        var start = new Vector2Int((int)Math.Floor((queryMax.x - boundsMin.x) / cellSize.x), (int)Math.Floor((queryMin.y - boundsMin.z) / cellSize.y));
+        var end = new Vector2Int((int)Math.Floor((queryMax.x - boundsMin.x) / cellSize.x), (int)Math.Floor((queryMax.y - boundsMin.z) / cellSize.y));
         var proxy = objectToProxy.GetValueOrDefault(obj, null);
         if (proxy == null)
         {
@@ -179,6 +179,8 @@ public class GridBroadphase4D
         var yMax = -1e8f;
         var zMin = 1e8f;
         var zMax = -1e8f;
+        var wMin = 1e8f;
+        var wMax = -1e8f;
 
 
         for (var i = 0; i < this.objects.Count; i++)
@@ -197,6 +199,8 @@ public class GridBroadphase4D
             yMax = Math.Max(yMax, aabbMax.y);
             zMin = Math.Min(zMin, aabbMin.z);
             zMax = Math.Max(zMax, aabbMax.z);
+            wMin = Math.Min(wMin, aabbMin.w);
+            wMax = Math.Max(wMax, aabbMax.w);
         }
         // Some padding
         xMin -= 100;
@@ -205,9 +209,11 @@ public class GridBroadphase4D
         yMax += 100;
         zMin -= 100;
         zMax += 100;
-        this.boundsMin = new Vector4(xMin, yMin, zMin);
-        this.boundsMax = new Vector4(xMax, yMax, zMax);
-        this.cellSize = new Vector2((xMax - xMin) / CELL_DIV.x, (yMax - yMin) / CELL_DIV.y);
+        wMin -= 100;
+        wMax += 100;
+        this.boundsMin = new Vector4(xMin, yMin, zMin, wMin);
+        this.boundsMax = new Vector4(xMax, yMax, zMax, wMax);
+        this.cellSize = new Vector2((xMax - xMin) / CELL_DIV.x, (zMax - zMin) / CELL_DIV.y);
 
         // Insert the objects
         for (var i = 0; i < CELL_SIZE; i++)
@@ -218,8 +224,8 @@ public class GridBroadphase4D
             maxX += (i + 1) * this.cellSize.x;
             for (var j = 0; j < CELL_SIZE; j++)
             {
-                var minY = this.boundsMin.y;
-                var maxY = this.boundsMax.y;
+                var minY = this.boundsMin.z;
+                var maxY = this.boundsMax.z;
                 minY += j * this.cellSize.y;
                 maxY += (j + 1) * this.cellSize.y;
 
@@ -234,7 +240,7 @@ public class GridBroadphase4D
                     Vector4 aabbMin = surface.collider.worldAabbMin;
                     Vector4 aabbMax = surface.collider.worldAabbMax;
 
-                    var hullRect = new Rect(aabbMin.x, aabbMin.y, aabbMax.x - aabbMin.x, aabbMax.y - aabbMin.y);
+                    var hullRect = new Rect(aabbMin.x, aabbMin.z, aabbMax.x - aabbMin.x, aabbMax.z - aabbMin.z);
                     
                     if (hullRect.Overlaps(binRect))
                     {
@@ -252,13 +258,13 @@ public class GridBroadphase4D
     public List<Collider4D> BoundingSearch(Vector4 aabbMin, Vector4 aabbMax)
     {
         var queryMinX = Math.Max(aabbMin.x,boundsMin.x);
-        var queryMinY = Math.Max(aabbMin.y,boundsMin.y);
+        var queryMinY = Math.Max(aabbMin.z,boundsMin.z);
         var queryMaxX = Math.Min(aabbMax.x,boundsMax.x);
-        var queryMaxY = Math.Min(aabbMax.y,boundsMax.y);
+        var queryMaxY = Math.Min(aabbMax.z,boundsMax.z);
         int xStart = (int)Math.Floor((queryMinX - boundsMin.x) / this.cellSize.x);
-        int yStart = (int)Math.Floor((queryMinY - boundsMin.y) / this.cellSize.y);
+        int yStart = (int)Math.Floor((queryMinY - boundsMin.z) / this.cellSize.y);
         int xEnd = (int)Math.Ceiling((queryMaxX - boundsMin.x) / this.cellSize.x);
-        int yEnd = (int)Math.Ceiling((queryMaxY - boundsMin.y) / this.cellSize.y);
+        int yEnd = (int)Math.Ceiling((queryMaxY - boundsMin.z) / this.cellSize.y);
 
         if (xStart < 0)
             xStart = 0;
