@@ -27,6 +27,8 @@ public abstract class Collider4D : MonoBehaviour {
     public bool isFloor = false;
     public bool extendedRange = false;
 
+    public Matrix4x4 colliderTransform = Matrix4x4.identity;
+
     public ColliderType type = ColliderType.Collideable;
 
     [System.NonSerialized] public int key = -1;
@@ -74,6 +76,7 @@ public abstract class Collider4D : MonoBehaviour {
     public void CalculateWorldAABB()
     {
         Transform4D localToWorld4D = obj4D.WorldTransform4D();
+        localToWorld4D.matrix = colliderTransform * localToWorld4D.matrix;
 
         var p1 = localToWorld4D * aabbMin;
         var p2 = localToWorld4D * aabbMax;
@@ -85,12 +88,16 @@ public abstract class Collider4D : MonoBehaviour {
     public bool Collide(Vector4 worldPt, float radius, ref Hit hit) {
         //Get the 4D world transform for the object
         Transform4D localToWorld4D = obj4D.WorldTransform4D();
+        localToWorld4D.matrix = colliderTransform * localToWorld4D.matrix;
         Transform4D worldToLocal4D = localToWorld4D.inverse;
+        worldToLocal4D.matrix = worldToLocal4D.matrix * colliderTransform.inverse;
 
         //Do actual collision
         return Collide(localToWorld4D, worldToLocal4D, worldPt, radius, ref hit);
     }
     public bool Collide(Transform4D localToWorld4D, Transform4D worldToLocal4D, Vector4 worldPt, float radius, ref Hit hit) {
+        localToWorld4D.matrix = colliderTransform * localToWorld4D.matrix;
+        worldToLocal4D.matrix = worldToLocal4D.matrix * colliderTransform.inverse;
         //Bounds check optimization
         Vector4 localPt = worldToLocal4D * worldPt;
         if (boundsCheck) {

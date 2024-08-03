@@ -1,4 +1,4 @@
-Shader "Custom/GridND" {
+Shader"Custom/GridND" {
   Properties{
     _Color("Colorize", Color) = (1.0,1.0,1.0,1.0)
     _Color2("Line Color", Color) = (0.0,0.0,0.0,1.0)

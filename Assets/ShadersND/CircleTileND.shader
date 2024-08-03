@@ -8,6 +8,8 @@ Shader "Custom/CircleTileND" {
     _SpecularMul("SpecularMul", Float) = 0.0
     _SpecularPow("SpecularPow", Float) = 0.0
     _GridFreq("Grid Freq", Float) = 1.0
+    _DitherDist("Dither Distance", Float) = 3.0
+    _DitherRadius("Dither Radius", Float) = 2.0
   }
 
   //Opaque shader
@@ -24,6 +26,9 @@ Shader "Custom/CircleTileND" {
     
       CGPROGRAM
       #define PROC_TEXTURE
+#if !defined(IS_EDITOR)
+      #define USE_DITHER
+#endif
       #define LOCAL_UV
       #define W 0.05
       float4 _Color2;

@@ -11,7 +11,8 @@ Shader "Custom/EdgeND" {
     _OffsetY("Offset Y", Float) = 0.0
     _OffsetZ("Offset Z", Float) = 0.0
     _OffsetW("Offset W", Float) = 0.0
-    _GSize("G Size", Float) = 0.0
+    _DitherDist("Dither Distance", Float) = 3.0
+    _DitherRadius("Dither Radius", Float) = 2.0
   }
 
   //Opaque shader
@@ -29,6 +30,9 @@ Shader "Custom/EdgeND" {
       CGPROGRAM
       #define PROC_TEXTURE
       #define LOCAL_UV
+#if !defined(IS_EDITOR)
+      #define USE_DITHER
+#endif
       #define W 0.05
       float4 _Color2;
       float _GridFreq;
@@ -36,7 +40,6 @@ Shader "Custom/EdgeND" {
       float _OffsetY;
       float _OffsetZ;
       float _OffsetW;
-      float _GSize;
       #define apply_proc_tex4D() \  
         float detail = saturate(_GridFreq * length(i.viewDir) / (_ScreenParams.x * (0.05 + abs(dot(vd, n))))); \
         detail = 1.0 - (1.0 - detail) * (1.0 - detail); \

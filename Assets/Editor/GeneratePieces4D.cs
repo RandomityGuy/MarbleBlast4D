@@ -87,7 +87,7 @@ public class GeneratePieces4D : EditorWindow
         endOffset = EditorGUILayout.Vector4Field("End Offset", endOffset);
         if (GUILayout.Button("Skewed Tile (Regular)"))
         {
-            GenerateTileSkew("TileSkew", endOffset, xwWidth, 0, 0);
+            GenerateTileSkew("TileSkew", endOffset, xwWidth, 0, 0, edgeHeightUnits * 0.25f);
         }
     }
 
@@ -554,40 +554,32 @@ public class GeneratePieces4D : EditorWindow
         }
     }
 
-    static void AddTesseract(Mesh4D mesh, Vector4[] s, Vector4[] e)
+    static void AddTesseract(Mesh4D mesh, Vector4[] s, Vector4[] e, bool addShadows = false)
     {
-        //// Top
-        //mesh.AddCell(s3, s4, e3, e4, s7, s8, e7, e8);
-        //// Bottom
-        //mesh.AddCell(s2, s1, e2, e1, s6, s5, e6, e5);
-        //// Back Face
-        //mesh.AddCell(s1, s2, s3, s4, s5, s6, s7, s8);
-        //// Front face
-        //mesh.AddCell(e2, e1, e4, e3, e6, e5, e8, e7);
-        //// Left Face
-        //mesh.AddCell(s1, s3, e1, e3, s5, s7, e5, e7);
-        //// Right Face
-        //mesh.AddCell(s4, s2, e4, e2, s8, s6, e8, e6);
-        //// Anth Face
-        //mesh.AddCell(s2, s1, s4, s3, e2, e1, e4, e3);
-        //// Kenth Face
-        //mesh.AddCell(s5, s6, s7, s8, e5, e6, s7, s8);
         // Top
         mesh.AddCell(s[2], s[3], e[2], e[3], s[6], s[7], e[6], e[7]);
+        if (addShadows) mesh.AddCellShadow(s[2], s[3], e[2], e[3], s[6], s[7], e[6], e[7]);
         // Bottom
         mesh.AddCell(s[1], s[0], e[1], e[0], s[5], s[4], e[5], e[4]);
+        if (addShadows) mesh.AddCellShadow(s[1], s[0], e[1], e[0], s[5], s[4], e[5], e[4]);
         // Back
         mesh.AddCell(s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]);
+        if (addShadows) mesh.AddCellShadow(s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]);
         // Front
         mesh.AddCell(e[1], e[0], e[3], e[2], e[5], e[4], e[7], e[6]);
+        if (addShadows) mesh.AddCellShadow(e[1], e[0], e[3], e[2], e[5], e[4], e[7], e[6]);
         // Left
         mesh.AddCell(s[0], s[2], e[0], e[2], s[4], s[6], e[4], e[6]);
+        if (addShadows) mesh.AddCellShadow(s[0], s[2], e[0], e[2], s[4], s[6], e[4], e[6]);
         // Right
         mesh.AddCell(s[3], s[1], e[3], e[1], s[7], s[5], e[7], e[5]);
+        if (addShadows) mesh.AddCellShadow(s[3], s[1], e[3], e[1], s[7], s[5], e[7], e[5]);
         // Anth
         mesh.AddCell(s[1], s[0], s[3], s[2], e[1], e[0], e[3], e[2]);
+        if (addShadows) mesh.AddCellShadow(s[1], s[0], s[3], s[2], e[1], e[0], e[3], e[2]);
         // Kenth
         mesh.AddCell(s[4], s[5], s[6], s[7], e[4], e[5], e[6], e[7]);
+        if (addShadows) mesh.AddCellShadow(s[4], s[5], s[6], s[7], e[4], e[5], e[6], e[7]);
     }
 
     public static void GenerateTileSkew(string name, Vector4 endOffset, Vector2Int xwWidth, byte edgeFlags, byte capFlags, float edgeHeight = 0.25f)
@@ -626,12 +618,12 @@ public class GeneratePieces4D : EditorWindow
         // Start
         var s1 = new Vector4(-xwWidth.x, 0, 0, -xwWidth.y) - globalOff;
         var s2 = new Vector4(xwWidth.x, 0, 0, -xwWidth.y) - globalOff;
-        var s3 = new Vector4(-xwWidth.x, 0.25f + edgeHeight, 0, -xwWidth.y) - globalOff;
-        var s4 = new Vector4(xwWidth.x, 0.25f + edgeHeight, 0, -xwWidth.y) - globalOff;
+        var s3 = new Vector4(-xwWidth.x, 0.25f, 0, -xwWidth.y) - globalOff;
+        var s4 = new Vector4(xwWidth.x, 0.25f, 0, -xwWidth.y) - globalOff;
         var s5 = new Vector4(-xwWidth.x, 0, 0, xwWidth.y) - globalOff;
         var s6 = new Vector4(xwWidth.x, 0, 0, xwWidth.y) - globalOff;
-        var s7 = new Vector4(-xwWidth.x, 0.25f + edgeHeight, 0, xwWidth.y) - globalOff;
-        var s8 = new Vector4(xwWidth.x, 0.25f + edgeHeight, 0, xwWidth.y) - globalOff;
+        var s7 = new Vector4(-xwWidth.x, 0.25f, 0, xwWidth.y) - globalOff;
+        var s8 = new Vector4(xwWidth.x, 0.25f, 0, xwWidth.y) - globalOff;
         // End
         var e1 = s1 + endOffset;
         var e2 = s2 + endOffset;
@@ -643,16 +635,107 @@ public class GeneratePieces4D : EditorWindow
         var e8 = s8 + endOffset;
 
         // The base tile
-        AddTesseract(mesh, new Vector4[] { s1, s2, s3, s4, s5, s6, s7, s8 }, new Vector4[] { e1, e2, e3, e4, e5, e6, e7, e8 });
+        AddTesseract(mesh, new Vector4[] { s1, s2, s3, s4, s5, s6, s7, s8 }, new Vector4[] { e1, e2, e3, e4, e5, e6, e7, e8 }, true);
+        mesh.NextSubmesh();
 
-        var mb = new Mesh4DBuilder(mesh);
-        mb.MergeVerts(0.0001f);
+        // Now for the edges
+        {
+            var sp = new Vector4[] { s1, s2, s3, s4, s5, s6, s7, s8 };
+            var ep = new Vector4[8];
+            for (var i = 0; i < sp.Length; i++)
+            {
+                if (sp[i].x > 0)
+                    sp[i].x += 0.25f;
+                else
+                    sp[i].x -= 0.25f;
+                ep[i] = sp[i] + endOffset;
+            }
+            sp[2].y = sp[3].y = sp[6].y = sp[7].y = 0.25f + edgeHeight;
+            ep[2].y = ep[3].y = ep[6].y = ep[7].y = endOffset.y + 0.25f + (edgeHeight);
+
+            var yOff = new Vector4(0, edgeHeight, 0, 0);
+
+            // now actually add them
+            // Left
+            AddTesseract(mesh, new Vector4[] { sp[0], s1, sp[2], s3 + yOff, sp[4], s5, sp[6], s7 + yOff }, new Vector4[] { ep[0], e1, ep[2], e3 + yOff, ep[4], e5, ep[6], e7 + yOff });
+            // Right
+            AddTesseract(mesh, new Vector4[] { s2, sp[1], s4 + yOff, sp[3], s6, sp[5], s8 + yOff, sp[7] }, new Vector4[] { e2, ep[1], e4 + yOff, ep[3], e6, ep[5], e8 + yOff, ep[7] });
+
+            sp = new Vector4[] { s1, s2, s3, s4, s5, s6, s7, s8 };
+            ep = new Vector4[8];
+            for (var i = 0; i < sp.Length; i++)
+            {
+                if (sp[i].w > 0)
+                    sp[i].w += 0.25f;
+                else
+                    sp[i].w -= 0.25f;
+                ep[i] = sp[i] + endOffset;
+            }
+            sp[2].y = sp[3].y = sp[6].y = sp[7].y = 0.25f + (edgeHeight);
+            ep[2].y = ep[3].y = ep[6].y = ep[7].y = endOffset.y + 0.25f + (edgeHeight);
+
+            // now actually add them
+            // Kenth
+            AddTesseract(mesh, new Vector4[] { s1, sp[0], s3 + yOff, sp[2], s2, sp[1], s4 + yOff, sp[3] }, new Vector4[] { e1, ep[0], e3 + yOff, ep[2], e2, ep[1], e4 + yOff, ep[3] });
+            // Anth
+            AddTesseract(mesh, new Vector4[] { sp[4], s5, sp[6], s7 + yOff, sp[5], s6, sp[7], s8 + yOff }, new Vector4[] { ep[4], e5, ep[6], e7 + yOff, ep[5], e6, ep[7], e8 + yOff });
+        }
+        // Edge corners
+        {
+            var yOff = new Vector4(0, edgeHeight, 0, 0);
+            var sp = new Vector4[] { s1, s2, s3, s4, s5, s6, s7, s8 };
+            var ep = new Vector4[8];
+            for (var i = 0; i < sp.Length; i++)
+            {
+                if (sp[i].w > 0)
+                    sp[i].w += 0.25f;
+                else
+                    sp[i].w -= 0.25f;
+                ep[i] = sp[i] + endOffset;
+            }
+            sp[2].y = sp[3].y = sp[6].y = sp[7].y = 0.25f + (edgeHeight);
+            ep[2].y = ep[3].y = ep[6].y = ep[7].y = endOffset.y + 0.25f + (edgeHeight);
+            var xOff = new Vector4(0.25f, 0, 0, 0);
+            var st = new Vector4[] { s1, sp[0], s3 + yOff, sp[2], s1 + xOff, sp[0] + xOff, s3 + xOff + yOff, sp[2] + xOff };
+            var et = new Vector4[] { e1, ep[0], e3 + yOff, ep[2], e1 + xOff, ep[0] + xOff, e3 + xOff + yOff, ep[2] + xOff };
+            for (var i = 0; i < sp.Length; i++)
+            {
+                st[i].x -= 0.25f;
+                et[i].x -= 0.25f;
+            }
+            AddTesseract(mesh, st, et, true);
+            for (var i = 0; i < sp.Length; i++)
+            {
+                st[i].x += 0.25f + 2 * xwWidth.x;
+                et[i].x += 0.25f + 2 * xwWidth.x;
+            }
+            AddTesseract(mesh, st, et, true);
+            for (var i = 0; i < sp.Length; i++)
+            {
+                st[i].w += 0.25f + 2 * xwWidth.y;
+                et[i].w += 0.25f + 2 * xwWidth.y;
+            }
+            AddTesseract(mesh, st, et, true);
+            for (var i = 0; i < sp.Length; i++)
+            {
+                st[i].x -= 0.25f + 2 * xwWidth.x;
+                et[i].x -= 0.25f + 2 * xwWidth.x;
+            }
+            AddTesseract(mesh, st, et, true);
+        }
 
         var obj = CreateObject4D(mesh, name);
 
         var o4d = obj.GetComponent<Object4D>();
         o4d.uvOffset = new Vector4(0, 0.25f, 1, 0);
         o4d.uvTransform.m11 = 0; // Don't let Y affect anything else
+        o4d.uvTransform.m20 = -endOffset.x / endOffset.z;
+        o4d.uvTransform.m23 = -endOffset.w / endOffset.z;
+
+        //var bc = obj.AddComponent<BoxCollider4D>();
+        //bc.pos = new Vector4(0, (0.25f + edgeHeight) / 2, endOffset.z / 2, 0f);
+        //bc.size = new Vector4(xwWidth.x, (0.25f + edgeHeight) / 2, endOffset.z / 2, xwWidth.y / 2);
+        //bc.basis.SetColumn(2, endOffset.normalized);
 
         var mr = obj.GetComponent<MeshRenderer>();
         mr.sharedMaterials = new Material[] { AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/CircleTile.mat"), AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Edge.mat") };
