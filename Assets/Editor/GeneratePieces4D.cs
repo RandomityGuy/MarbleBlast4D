@@ -87,8 +87,8 @@ public class GeneratePieces4D : EditorWindow
         endOffset = EditorGUILayout.Vector4Field("End Offset", endOffset);
         if (GUILayout.Button("Skewed Tile (Regular)"))
         {
-            var edgeFlags = (edgeLeft ? 0b0001 : 0) | (edgeRight ? 0b0010 : 0) | (edgeAnth ? 0b0100 : 0) | (edgeKenth ? 0b1000 : 0);
-            var capFlags = (capLeft ? 0b0001 : 0) | (capRight ? 0b0010 : 0) | (capAnth ? 0b0100 : 0) | (capKenth ? 0b1000 : 0) | (capFront ? 0b100000 : 0) | (capBack ? 0b010000 : 0);
+            var edgeFlags = ToFlags(true, true, edgeBack, edgeFront, edgeLeft, edgeRight, edgeAnth, edgeKenth);
+            var capFlags = ToFlags(true, true, capBack, capFront, capLeft, capRight, capAnth, capKenth);
             GenerateTileSkew("TileSkew", endOffset, xwWidth, (byte)(edgeFlags), (byte)capFlags, edgeHeightUnits * 0.5f);
         }
     }
@@ -614,6 +614,66 @@ public class GeneratePieces4D : EditorWindow
         }
     }
 
+    static void AddCellShadow(Mesh4D mesh, Vector4 a1, Vector4 a2, Vector4 A1, Vector4 A2, Vector4 b1, Vector4 b2, Vector4 B1, Vector4 B2, byte shadowFlags = 0b111111)
+    {
+        if ((shadowFlags & 0b10) > 0) mesh.AddQuadShadow(a2, b2, a1, b1); // Bottom
+        if ((shadowFlags & 0b1) > 0) mesh.AddQuadShadow(A1, B1, A2, B2); // Top
+        if ((shadowFlags & 0b100000) > 0) mesh.AddQuadShadow(A1, a1, B1, b1); // Left
+        if ((shadowFlags & 0b10000) > 0) mesh.AddQuadShadow(a2, A2, b2, B2); // Right
+        if ((shadowFlags & 0b100) > 0) mesh.AddQuadShadow(a2, a1, A2, A1); // Front
+        if ((shadowFlags & 0b1000) > 0) mesh.AddQuadShadow(b1, b2, B1, B2); // Back
+    }
+
+    static void AddTesseractShadows(Mesh4D mesh, Vector4[] s, Vector4[] e, byte facetFlags = 0b11_11_11_11)
+    {
+        /* 
+          facetFlags:
+          top bottom back front left right anth kenth
+
+         */
+
+        // Top
+        if ((facetFlags & 0b10_00_00_00) > 0)
+        {
+            AddCellShadow(mesh,s[2], s[3], e[2], e[3], s[6], s[7], e[6], e[7], 0b000001);
+        }
+        // Bottom
+        if ((facetFlags & 0b01_00_00_00) > 0)
+        {
+            AddCellShadow(mesh,s[1], s[0], e[1], e[0], s[5], s[4], e[5], e[4], 0b000001);
+        }
+        // Back
+        if ((facetFlags & 0b00_10_00_00) > 0)
+        {
+            AddCellShadow(mesh,s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], 0b000001);
+        }
+        // Front
+        if ((facetFlags & 0b00_01_00_00) > 0)
+        {
+            AddCellShadow(mesh,e[1], e[0], e[3], e[2], e[5], e[4], e[7], e[6], 0b000001);
+        }
+        // Left
+        if ((facetFlags & 0b00_00_10_00) > 0)
+        {
+            AddCellShadow(mesh,s[0], s[2], e[0], e[2], s[4], s[6], e[4], e[6], 0b000001);
+        }
+        // Right
+        if ((facetFlags & 0b00_00_01_00) > 0)
+        {
+            AddCellShadow(mesh,s[3], s[1], e[3], e[1], s[7], s[5], e[7], e[5], 0b000001);
+        }
+        // Anth
+        if ((facetFlags & 0b00_00_00_10) > 0)
+        {
+            AddCellShadow(mesh,s[1], s[0], s[3], s[2], e[1], e[0], e[3], e[2], 0b000001);
+        }
+        // Kenth
+        if ((facetFlags & 0b00_00_00_01) > 0)
+        {
+            AddCellShadow(mesh,s[4], s[5], s[6], s[7], e[4], e[5], e[6], e[7], 0b000001);
+        }
+    }
+
     static void addSkewedColliders(GameObject obj, byte edgeFlags, byte capFlags, Vector4 offset, Vector4 ax1, Vector4 ax2, Vector4 ax3, Vector4 ax4)
     {
         /*
@@ -633,6 +693,10 @@ public class GeneratePieces4D : EditorWindow
                          offset       ax1
          * 
          */
+
+        FromFlags(capFlags, out bool capTop, out bool capBottom, out bool capBack, out bool capFront, out bool capLeft, out bool capRight, out bool capAnth, out bool capKenth);
+        FromFlags(edgeFlags, out bool edgeTop, out bool edgeBottom, out bool edgeBack, out bool edgeFront, out bool edgeLeft, out bool edgeRight, out bool edgeAnth, out bool edgeKenth);
+
         // Top face
         var c1 = obj.AddComponent<ParallelotopeCollider4D>();
         c1.pos = offset + ax2 + ax3 / 2;
@@ -648,7 +712,7 @@ public class GeneratePieces4D : EditorWindow
         c2.ax3 = ax3 / 2;
 
         // Right face
-        if ((edgeFlags & 0b0010) == 0 && (capFlags & 0b0010) > 0)
+        if (!edgeRight && capRight)
         {
             var c3 = obj.AddComponent<ParallelotopeCollider4D>();
             c3.pos = offset + ax1 + ax3 / 2 + ax2 / 2;
@@ -658,7 +722,7 @@ public class GeneratePieces4D : EditorWindow
         }
 
         // Left face
-        if ((edgeFlags & 0b0001) == 0 && (capFlags & 0b0001) > 0)
+        if (!edgeLeft && capLeft)
         {
             var c3 = obj.AddComponent<ParallelotopeCollider4D>();
             c3.pos = offset - ax1 + ax3 / 2 + ax2 / 2;
@@ -668,7 +732,7 @@ public class GeneratePieces4D : EditorWindow
         }
 
         // Kenth face
-        if ((edgeFlags & 0b1000) == 0 && (capFlags & 0b1000) > 0)
+        if (!edgeKenth && capKenth)
         {
             var c5 = obj.AddComponent<ParallelotopeCollider4D>();
             c5.pos = offset + ax4 + ax2 / 2 + ax3 / 2;
@@ -678,7 +742,7 @@ public class GeneratePieces4D : EditorWindow
         }
 
         // Anth face
-        if ((edgeFlags & 0b0100) == 0 && (capFlags & 0b0100) > 0)
+        if (!edgeAnth && capAnth)
         {
             var c5 = obj.AddComponent<ParallelotopeCollider4D>();
             c5.pos = offset - ax4 + ax2 / 2 + ax3 / 2;
@@ -712,36 +776,44 @@ public class GeneratePieces4D : EditorWindow
         var e8 = s8 + ax3;
 
         // Back face
-        if ((capFlags & 0b010000) > 0)
+        if (!edgeBack && capBack)
         {
             var c7 = obj.AddComponent<CellCollider4D>();
             c7.MakeCell(s1, s2, s3, s4, s5, s6, s7, s8);
         }
 
         // Front face
-        if ((capFlags & 0b100000) > 0)
+        if (!edgeFront && capFront)
         {
             var c8 = obj.AddComponent<CellCollider4D>();
             c8.MakeCell(e1, e2, e3, e4, e5, e6, e7, e8);
         }
     }
 
+    static byte ToFlags(bool top = false, bool bottom = false, bool back = false, bool front = false, bool left = false, bool right = false, bool anth = false, bool kenth = false)
+    {
+        return (byte)((top ? 1 << 7 : 0) | (bottom ? 1 << 6 : 0) | (back ? 1 << 5 : 0) | (front ? 1 << 4 : 0) | (left ? 1 << 3 : 0) | (right ? 1 << 2 : 0) | (anth ? 1 << 1 : 0) | (kenth ? 1 : 0));
+    }
+
+    static byte ToFlagsN(bool top = true, bool bottom = true, bool back = true, bool front = true, bool left = true, bool right = true, bool anth = true, bool kenth = true)
+    {
+        return (byte)((top ? 1 << 7 : 0) | (bottom ? 1 << 6 : 0) | (back ? 1 << 5 : 0) | (front ? 1 << 4 : 0) | (left ? 1 << 3 : 0) | (right ? 1 << 2 : 0) | (anth ? 1 << 1 : 0) | (kenth ? 1 : 0));
+    }
+
+    static void FromFlags(byte flags, out bool top, out bool bottom, out bool back, out bool front, out bool left, out bool right, out bool anth, out bool kenth)
+    {
+        top = ((1 << 7) & flags) > 0;
+        bottom = ((1 << 6) & flags) > 0;
+        back = ((1 << 5) & flags) > 0;
+        front = ((1 << 4) & flags) > 0;
+        left = ((1 << 3) & flags) > 0;
+        right = ((1 << 2) & flags) > 0;
+        anth = ((1 << 1) & flags) > 0;
+        kenth = ((1 << 0) & flags) > 0;
+    }
+
     public static void GenerateTileSkew(string name, Vector4 endOffset, Vector2Int xwWidth, byte edgeFlags, byte capFlags, float edgeHeight = 0.5f)
     {
-        /* Edge flags
-            0b0001 = left
-            0b0010 = right
-            0b0100 = anth
-            0b1000 = kenth
-            
-           Cap flags
-            0b000001 = left
-            0b000010 = right
-            0b000100 = anth
-            0b001000 = kenth
-            0b010000 = back
-            0b100000 = front
-         */
         var mesh = new Mesh4D(2);
 
 
@@ -792,23 +864,12 @@ public class GeneratePieces4D : EditorWindow
         var e7 = s7 + endOffset;
         var e8 = s8 + endOffset;
 
-        byte baseFaceFlags = 0b11_00_00_00;
-        if ((edgeFlags & 0b0001) == 0 && (capFlags * 0b0001) > 0)
-            baseFaceFlags |= 0b00_00_10_00;
-        if ((edgeFlags & 0b0010) == 0 && (capFlags * 0b0010) > 0)
-            baseFaceFlags |= 0b00_00_01_00;
-        if ((edgeFlags & 0b0100) == 0 && (capFlags * 0b0100) > 0)
-            baseFaceFlags |= 0b00_00_00_10;
-        if ((edgeFlags & 0b1000) == 0 && (capFlags * 0b1000) > 0)
-            baseFaceFlags |= 0b00_00_00_01;
-        if ((capFlags & 0b010000) > 0)
-            baseFaceFlags |= 0b00_10_00_00;
-        if ((capFlags & 0b100000) > 0)
-            baseFaceFlags |= 0b00_01_00_00;
+        FromFlags(capFlags, out bool capTop, out bool capBottom, out bool capBack, out bool capFront, out bool capLeft, out bool capRight, out bool capAnth, out bool capKenth);
+        FromFlags(edgeFlags, out bool edgeTop, out bool edgeBottom, out bool edgeBack, out bool edgeFront, out bool edgeLeft, out bool edgeRight, out bool edgeAnth, out bool edgeKenth);
 
 
         // The base tile
-        AddTesseract(mesh, new Vector4[] { s1, s2, s3, s4, s5, s6, s7, s8 }, new Vector4[] { e1, e2, e3, e4, e5, e6, e7, e8 }, true, baseFaceFlags);
+        AddTesseract(mesh, new Vector4[] { s1, s2, s3, s4, s5, s6, s7, s8 }, new Vector4[] { e1, e2, e3, e4, e5, e6, e7, e8 }, false, ToFlags(true, true, !edgeBack && capBack, !edgeFront && capFront, !edgeLeft && capLeft, !edgeRight && capRight, !edgeAnth && capAnth, !edgeKenth && capKenth));
         mesh.NextSubmesh();
 
         // Now for the edges
@@ -830,14 +891,18 @@ public class GeneratePieces4D : EditorWindow
 
             // now actually add them
             // Left
-            if ((edgeFlags & 0b0001) > 0)
+            if (edgeLeft)
             {
-                AddTesseract(mesh, new Vector4[] { sp[0], s1, sp[2], s3 + yOff, sp[4], s5, sp[6], s7 + yOff }, new Vector4[] { ep[0], e1, ep[2], e3 + yOff, ep[4], e5, ep[6], e7 + yOff });
+                AddTesseract(mesh, new Vector4[] { sp[0], s1, sp[2], s3 + yOff, sp[4], s5, sp[6], s7 + yOff }, new Vector4[] { ep[0], e1, ep[2], e3 + yOff, ep[4], e5, ep[6], e7 + yOff }, false, ToFlagsN(true, true, capBack, capFront));
+                mesh.AddQuadShadow(s1, e1, s5, e5);
+                mesh.AddQuadShadow(sp[0], ep[0], sp[4], ep[4]);
             }
             // Right
-            if ((edgeFlags & 0b0010) > 0)
+            if (edgeRight)
             {
-                AddTesseract(mesh, new Vector4[] { s2, sp[1], s4 + yOff, sp[3], s6, sp[5], s8 + yOff, sp[7] }, new Vector4[] { e2, ep[1], e4 + yOff, ep[3], e6, ep[5], e8 + yOff, ep[7] });
+                AddTesseract(mesh, new Vector4[] { s2, sp[1], s4 + yOff, sp[3], s6, sp[5], s8 + yOff, sp[7] }, new Vector4[] { e2, ep[1], e4 + yOff, ep[3], e6, ep[5], e8 + yOff, ep[7] }, false, ToFlagsN(true, true, capBack, capFront));
+                mesh.AddQuadShadow(s2, e2, s6, e6);
+                mesh.AddQuadShadow(sp[1], sp[5], ep[1], ep[5]);
             }
 
             sp = new Vector4[] { s1, s2, s3, s4, s5, s6, s7, s8 };
@@ -855,14 +920,18 @@ public class GeneratePieces4D : EditorWindow
 
             // now actually add them
             // Kenth
-            if ((edgeFlags & 0b1000) > 0)
+            if (edgeKenth)
             {
-                AddTesseract(mesh, new Vector4[] { s1, sp[0], s3 + yOff, sp[2], s2, sp[1], s4 + yOff, sp[3] }, new Vector4[] { e1, ep[0], e3 + yOff, ep[2], e2, ep[1], e4 + yOff, ep[3] });
+                AddTesseract(mesh, new Vector4[] { s1, sp[0], s3 + yOff, sp[2], s2, sp[1], s4 + yOff, sp[3] }, new Vector4[] { e1, ep[0], e3 + yOff, ep[2], e2, ep[1], e4 + yOff, ep[3] }, false, ToFlagsN(true, true, capBack, capFront));
+                mesh.AddQuadShadow(s1, e1, s2, e2);
+                mesh.AddQuadShadow(sp[0], ep[0], sp[1], ep[1]);
             }
             // Anth
-            if ((edgeFlags & 0b0100) > 0)
+            if (edgeAnth)
             {
-                AddTesseract(mesh, new Vector4[] { sp[4], s5, sp[6], s7 + yOff, sp[5], s6, sp[7], s8 + yOff }, new Vector4[] { ep[4], e5, ep[6], e7 + yOff, ep[5], e6, ep[7], e8 + yOff });
+                AddTesseract(mesh, new Vector4[] { sp[4], s5, sp[6], s7 + yOff, sp[5], s6, sp[7], s8 + yOff }, new Vector4[] { ep[4], e5, ep[6], e7 + yOff, ep[5], e6, ep[7], e8 + yOff }, false, ToFlagsN(true, true, capBack, capFront));
+                mesh.AddQuadShadow(s5, e5, s6, e6);
+                mesh.AddQuadShadow(sp[4], ep[4], sp[5], ep[5]);
             }
         }
         // Edge corners
@@ -889,9 +958,55 @@ public class GeneratePieces4D : EditorWindow
                 et[i].x -= 0.5f;
             }
             // Left Kenth
-            if ((edgeFlags & 0b1001) > 0)
+            if (edgeLeft && edgeKenth)
             {
-                AddTesseract(mesh, st, et, true);
+                AddTesseract(mesh, st, et, false, ToFlagsN(true, true, capBack, capFront));
+                // Volume view shadows
+                mesh.AddQuadShadow(st[0], et[0], st[1], et[1]);
+                mesh.AddQuadShadow(st[4], et[4], st[5], et[5]);
+                mesh.AddQuadShadow(st[0], et[0], st[4], et[4]);
+                mesh.AddQuadShadow(st[1], et[1], st[5], et[5]);
+                if (capBack)
+                    mesh.AddQuadShadow(st[0], st[4], st[1], st[5]);
+                if (capFront)
+                    mesh.AddQuadShadow(et[4], et[0], et[5], et[1]);
+                // Normal view shadows
+                // Side faces
+                // mesh.AddQuadShadow(st[0], et[0], st[2], et[2]); // X = -1.5 W = -1.0
+                mesh.AddQuadShadow(st[1], et[1], st[3], et[3]); // X = -1.5 W = -1.5
+                mesh.AddQuadShadow(st[4], et[4], st[6], et[6]); // X = 1.0 W = 1.0
+                // mesh.AddQuadShadow(st[4], et[4], st[6], et[6]); 
+                // mesh.AddQuadShadow(st[5], et[5], st[7], et[7]);
+                // Top faces
+                mesh.AddQuadShadow(st[3], st[2], et[3], et[2]);
+                mesh.AddQuadShadow(st[3], st[7], et[3], et[7]);
+                // Left face
+                // mesh.AddQuadShadow(et[2], st[2], et[0], st[0]);
+                // Right face
+                //mesh.AddQuadShadow(et[6], st[6], et[4], st[4]);
+                // Top face
+                // mesh.AddQuadShadow(et[2], st[2], et[6], st[6]);
+                // Back face
+                //mesh.AddQuadShadow(st[0], st[4], st[2], st[6]);
+                // Front face
+                //mesh.AddQuadShadow(et[0], et[4], et[2], et[6]);
+
+                // W normal view
+                //mesh.AddQuadShadow(st[7], et[7], st[5], et[5]);
+                //mesh.AddQuadShadow(st[6], et[6], st[7], et[7]);
+                // mesh.AddQuadShadow(st[0], et[0], st[7], et[7]);
+                //if (capBack)
+                //    mesh.AddQuadShadow(st[1], st[2], st[7], st[6]);
+                //if (capFront)
+                //    mesh.AddQuadShadow(et[2], et[1], et[6], et[7]);
+                //// Right face
+                //mesh.AddQuadShadow(et[6], st[6], et[4], st[4]);
+                //// Top face
+                //mesh.AddQuadShadow(et[2], st[2], et[6], st[6]);
+                //// Back face
+                //mesh.AddQuadShadow(st[1], st[4], st[2], st[6]);
+                //// Front face
+                //mesh.AddQuadShadow(et[1], et[4], et[2], et[6]);
             }
             for (var i = 0; i < sp.Length; i++)
             {
@@ -899,9 +1014,9 @@ public class GeneratePieces4D : EditorWindow
                 et[i].x += 0.5f + 2 * xwWidth.x;
             }
             // Right Kenth
-            if ((edgeFlags & 0b1010) > 0)
+            if (edgeRight && edgeKenth)
             {
-                AddTesseract(mesh, st, et, true);
+                AddTesseract(mesh, st, et, false, ToFlagsN(true, true, capBack, capFront));
             }
             for (var i = 0; i < sp.Length; i++)
             {
@@ -909,9 +1024,9 @@ public class GeneratePieces4D : EditorWindow
                 et[i].w += 0.5f + 2 * xwWidth.y;
             }
             // Right Anth
-            if ((edgeFlags & 0b0110) > 0)
+            if (edgeRight && edgeAnth)
             {
-                AddTesseract(mesh, st, et, true);
+                AddTesseract(mesh, st, et, false, ToFlagsN(true, true, capBack, capFront));
             }
             for (var i = 0; i < sp.Length; i++)
             {
@@ -919,9 +1034,9 @@ public class GeneratePieces4D : EditorWindow
                 et[i].x -= 0.5f + 2 * xwWidth.x;
             }
             // Left Anth
-            if ((edgeFlags & 0b0101) > 0)
+            if (edgeLeft && edgeAnth)
             {
-                AddTesseract(mesh, st, et, true);
+                AddTesseract(mesh, st, et, false, ToFlagsN(true, true, capBack, capFront));
             }
         }
 
@@ -941,34 +1056,34 @@ public class GeneratePieces4D : EditorWindow
         {
             // Left edge
             // Left
-            if ((edgeFlags & 0b0001) > 0)
+            if (edgeLeft)
                 addSkewedColliders(obj, 0, 0b111111, new Vector4(-xwWidth.x - 0.25f, 0, 0, 0), new Vector4(0.25f, 0, 0, 0), new Vector4(0, (0.5f + edgeHeight) * 2, 0, 0) / 2, endOffset, new Vector4(0, 0, 0, xwWidth.y));
             // Right edge
             // Left
-            if ((edgeFlags & 0b0010) > 0)
+            if (edgeRight)
                 addSkewedColliders(obj, 0, 0b111111, new Vector4(xwWidth.x + 0.25f, 0, 0, 0), new Vector4(0.25f, 0, 0, 0), new Vector4(0, (0.5f + edgeHeight) * 2, 0, 0) / 2, endOffset, new Vector4(0, 0, 0, xwWidth.y));
             // Anth edge
             // Left
-            if ((edgeFlags & 0b0100) > 0)
+            if (edgeAnth)
                 addSkewedColliders(obj, 0, 0b111111, new Vector4(0, 0, 0, -xwWidth.y - 0.25f), new Vector4(0, 0, 0, 0.25f), new Vector4(0, (0.5f + edgeHeight) * 2, 0, 0) / 2, endOffset, new Vector4(xwWidth.x, 0, 0, 0));
             // Kenth edge
             // Left
-            if ((edgeFlags & 0b1000) > 0)
+            if (edgeKenth)
                 addSkewedColliders(obj, 0, 0b111111, new Vector4(0, 0, 0, xwWidth.y + 0.25f), new Vector4(0, 0, 0, 0.25f), new Vector4(0, (0.5f + edgeHeight) * 2, 0, 0) / 2, endOffset, new Vector4(xwWidth.x, 0, 0, 0));
         }
         // Edge corner pieces
         {
             // Left Anth
-            if ((edgeFlags & 0b0101) > 0)
+            if (edgeLeft && edgeAnth)
                 addSkewedColliders(obj, 0, 0b110101, new Vector4(-xwWidth.x - 0.25f, 0, 0, -xwWidth.y - 0.25f), new Vector4(0.25f, 0, 0, 0), new Vector4(0, (0.5f + edgeHeight) * 2, 0, 0) / 2, endOffset, new Vector4(0, 0, 0, 0.25f));
             // Right Anth
-            if ((edgeFlags & 0b0110) > 0)
+            if (edgeRight && edgeAnth)
                 addSkewedColliders(obj, 0, 0b110110, new Vector4(xwWidth.x + 0.25f, 0, 0, -xwWidth.y - 0.25f), new Vector4(0.25f, 0, 0, 0), new Vector4(0, (0.5f + edgeHeight) * 2, 0, 0) / 2, endOffset, new Vector4(0, 0, 0, 0.25f));
             // Right Kenth
-            if ((edgeFlags & 0b1010) > 0)
+            if (edgeRight && edgeKenth)
                 addSkewedColliders(obj, 0, 0b111010, new Vector4(xwWidth.x + 0.25f, 0, 0, xwWidth.y + 0.25f), new Vector4(0.25f, 0, 0, 0), new Vector4(0, (0.5f + edgeHeight) * 2, 0, 0) / 2, endOffset, new Vector4(0, 0, 0, 0.25f));
             // Left Kenth
-            if ((edgeFlags & 0b1001) > 0)
+            if (edgeLeft && edgeKenth)
                 addSkewedColliders(obj, 0, 0b111001, new Vector4(-xwWidth.x - 0.25f, 0, 0, xwWidth.y + 0.25f), new Vector4(0.25f, 0, 0, 0), new Vector4(0, (0.5f + edgeHeight) * 2, 0, 0) / 2, endOffset, new Vector4(0, 0, 0, 0.25f));
         }
 
