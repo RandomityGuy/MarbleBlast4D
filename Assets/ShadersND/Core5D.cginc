@@ -21,6 +21,7 @@ DEFINE_CUSTOM_LOCALS
 #endif
 InstancedMatrix5x5(_ModelMatrix)
 InstancedVector5(_ModelPosition)
+InstancedMatrix5x5(_UVTransform)
 UNITY_INSTANCING_BUFFER_END(Props)
 
 //Vertex input structure

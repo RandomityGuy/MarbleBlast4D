@@ -1,61 +1,68 @@
-﻿using System;
+﻿/*using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-class GridBroadphaseProxy4D
+class GridBroadphaseProxy5D
 {
     public int index;
-    public ColliderGroup4D collider;
+    public Collider5D collider;
     public int xMin;
     public int xMax;
     public int yMin;
     public int yMax;
+    public int zMin;
+    public int zMax;
 }
 
-public class GridBroadphase4D
+public class GridBroadphase5D
 {
-    Vector4 boundsMin;
-    Vector4 boundsMax;
+    Vector5 boundsMin;
+    Vector5 boundsMax;
 
     static int CELL_SIZE = 16;
-    static Vector2 CELL_DIV = new Vector3(CELL_SIZE, CELL_SIZE);
+    static Vector3 CELL_DIV = new Vector3(CELL_SIZE, CELL_SIZE, CELL_SIZE);
 
-    Vector2 cellSize;
+    Vector3 cellSize;
 
-    List<int>[,] cells = new List<int>[CELL_SIZE, CELL_SIZE];
+    List<int>[,,] cells = new List<int>[CELL_SIZE, CELL_SIZE, CELL_SIZE];
 
-    List<GridBroadphaseProxy4D> objects = new();
-    Dictionary<ColliderGroup4D, GridBroadphaseProxy4D> objectToProxy = new();
+    List<GridBroadphaseProxy5D> objects = new();
+    Dictionary<Collider5D, GridBroadphaseProxy5D> objectToProxy = new();
 
     int searchKey = 0;
     bool built = false;
 
-    public GridBroadphase4D()
+    public GridBroadphase5D()
     {
         for (int i = 0; i < CELL_SIZE; i++)
         {
             for (int j = 0; j < CELL_SIZE; j++)
             {
-                cells[i, j] = new();
+                for (int k = 0; k < CELL_SIZE; k++)
+                {
+                    cells[i, j, k] = new();
+                }
             }
         }
     }
 
-    public void Insert(ColliderGroup4D collider)
+    public void Insert(Collider5D collider)
     {
         if (!built)
         {
             int idx = objects.Count;
-            objects.Add(new GridBroadphaseProxy4D
+            objects.Add(new GridBroadphaseProxy5D
             {
                 collider = collider,
                 xMin = 1000,
                 yMin = 1000,
                 xMax = -1000,
                 yMax = -1000,
+                zMin = 1000,
+                zMax = -1000,
                 index = idx,
             });
             objectToProxy[collider] = objects[objects.Count - 1];
@@ -63,42 +70,53 @@ public class GridBroadphase4D
         else
         {
             int idx = objects.Count;
-            var proxy = new GridBroadphaseProxy4D
+            var proxy = new GridBroadphaseProxy5D
             {
                 collider = collider,
                 xMin = 1000,
                 yMin = 1000,
                 xMax = -1000,
                 yMax = -1000,
+                zMin = 1000,
+                zMax = -1000,
                 index = idx,
             };
             objects.Add(proxy);
             objectToProxy[collider] = proxy;
 
-            Vector4 queryMin = Vector4.Max(collider.worldAabbMin, boundsMin);
-            Vector4 queryMax = Vector4.Min(collider.worldAabbMax, boundsMax);
-            Vector2Int start = new Vector2Int(
+            var localToWorld5D = collider.obj5D.WorldTransform5D();
+
+            Vector5 queryMin = Vector5.Max(localToWorld5D * collider.aabbMin, boundsMin);
+            Vector5 queryMax = Vector5.Min(localToWorld5D * collider.aabbMax, boundsMax);
+            Vector3Int start = new Vector3Int(
                 (int)((queryMin.x - boundsMin.x) / cellSize.x),
-                (int)((queryMin.z - boundsMin.z) / cellSize.y));
-            Vector2Int end = new Vector2Int(
+                (int)((queryMin.z - boundsMin.z) / cellSize.y),
+                (int)((queryMin.w - boundsMin.w) / cellSize.z));
+            Vector3Int end = new Vector3Int(
                 (int)((queryMax.x - boundsMin.x) / cellSize.x),
-                (int)((queryMax.z - boundsMin.z) / cellSize.y));
+                (int)((queryMax.z - boundsMin.z) / cellSize.y),
+                (int)((queryMax.w - boundsMin.w) / cellSize.z));
 
             for (int i = start.x; i <= end.x; i++)
             {
                 for (int j = start.y; j <= end.y; j++)
                 {
-                    cells[i, j].Add(idx);
-                    proxy.xMin = Math.Min(proxy.xMin, i);
-                    proxy.yMin = Math.Min(proxy.yMin, j);
-                    proxy.xMax = Math.Max(proxy.xMax, i);
-                    proxy.yMax = Math.Max(proxy.yMax, j);
+                    for (int k = start.z; k <= end.z; k++)
+                    {
+                        cells[i, j, k].Add(idx);
+                        proxy.xMin = Math.Min(proxy.xMin, i);
+                        proxy.yMin = Math.Min(proxy.yMin, j);
+                        proxy.zMin = Math.Min(proxy.zMin, k);
+                        proxy.xMax = Math.Max(proxy.xMax, i);
+                        proxy.yMax = Math.Max(proxy.yMax, j);
+                        proxy.zMax = Math.Max(proxy.zMax, k);
+                    }
                 }
             }
         }
     }
 
-    public void Remove(ColliderGroup4D obj)
+    public void Remove(Collider5D obj)
     {
         if (!objectToProxy.ContainsKey(obj))
             return;
@@ -108,25 +126,31 @@ public class GridBroadphase4D
         {
             for (int j = proxy.yMin; j <= proxy.yMax + 1; j++)
             {
-                cells[i, j].Remove(proxy.index);
+                for (int k = proxy.zMin; k <= proxy.zMax + 1; k++)
+                {
+                    cells[i, j, k].Remove(proxy.index);
+                }
             }
         }
         objects[proxy.index] = null;
         objectToProxy.Remove(obj);
     }
     
-    public void Update(ColliderGroup4D obj)
+    public void Update(Collider5D obj)
     {
         if (!built)
             return;
 
-        Vector4 aabbMin = obj.worldAabbMin;
-        Vector4 aabbMax = obj.worldAabbMax;
+        var localToWorld4D = obj.obj5D.WorldTransform5D();
+        Vector5 aabbMin = localToWorld4D * obj.aabbMin;
+        Vector5 aabbMax = localToWorld4D * obj.aabbMax;
 
-        var queryMin = new Vector2(Math.Max(aabbMin.x, boundsMin.x), Math.Max(aabbMin.z, boundsMin.z));
-        var queryMax = new Vector2(Math.Min(aabbMax.x, boundsMax.x), Math.Min(aabbMax.z, boundsMax.z));
-        var start = new Vector2Int((int)Math.Floor((queryMax.x - boundsMin.x) / cellSize.x), (int)Math.Floor((queryMin.y - boundsMin.z) / cellSize.y));
-        var end = new Vector2Int((int)Math.Floor((queryMax.x - boundsMin.x) / cellSize.x), (int)Math.Floor((queryMax.y - boundsMin.z) / cellSize.y));
+        obj.CalculateWorldAABB();
+
+        var queryMin = new Vector3(Math.Max(aabbMin.x, boundsMin.x), Math.Max(aabbMin.z, boundsMin.z), Math.Max(aabbMin.w, boundsMin.w));
+        var queryMax = new Vector3(Math.Min(aabbMax.x, boundsMax.x), Math.Min(aabbMax.z, boundsMax.z), Math.Min(aabbMax.w, boundsMax.w));
+        var start = new Vector3Int((int)Math.Floor((queryMax.x - boundsMin.x) / cellSize.x), (int)Math.Floor((queryMin.y - boundsMin.z) / cellSize.y), (int)Math.Floor((queryMin.z - boundsMin.w) / cellSize.z));
+        var end = new Vector3Int((int)Math.Floor((queryMax.x - boundsMin.x) / cellSize.x), (int)Math.Floor((queryMax.y - boundsMin.z) / cellSize.y), (int)Math.Floor((queryMax.z - boundsMin.w) / cellSize.z));
         var proxy = objectToProxy.GetValueOrDefault(obj, null);
         if (proxy == null)
         {
@@ -141,7 +165,10 @@ public class GridBroadphase4D
                 {
                     for (var j = proxy.yMin; j < proxy.yMax + 1; j++)
                     {
-                        cells[i, j].Remove(proxy.index);
+                        for (var k = proxy.zMin; k < proxy.zMax + 1; k++)
+                        {
+                            cells[i, j, k].Remove(proxy.index);
+                        }
                     }
                 }
 
@@ -149,14 +176,19 @@ public class GridBroadphase4D
                 {
                     for (var j = start.y; j < end.y + 1; j++)
                     {
-                        cells[i, j].Remove(proxy.index);
+                        for (var k = start.z; k < end.z + 1; k++)
+                        {
+                            cells[i, j, k].Remove(proxy.index);
+                        }
                     }
                 }
 
                 proxy.xMin = start.x;
                 proxy.yMin = start.y;
+                proxy.zMin = start.z;
                 proxy.xMax = end.x;
                 proxy.yMax = end.y;
+                proxy.zMax = end.z;
             }
 
         }
@@ -176,6 +208,8 @@ public class GridBroadphase4D
         var zMax = -1e8f;
         var wMin = 1e8f;
         var wMax = -1e8f;
+        var vMin = 1e8f;
+        var vMax = -1e8f;
 
 
         for (var i = 0; i < this.objects.Count; i++)
@@ -184,8 +218,9 @@ public class GridBroadphase4D
                 continue;
             var surface = this.objects[i].collider;
 
-            Vector4 aabbMin = surface.worldAabbMin;
-            Vector4 aabbMax = surface.worldAabbMax;
+            surface.CalculateWorldAABB();
+            var aabbMin = surface.worldAabbMin;
+            var aabbMax = surface.worldAabbMax;
 
             xMin = Math.Min(xMin, aabbMin.x);
             xMax = Math.Max(xMax, aabbMax.x);
@@ -195,6 +230,8 @@ public class GridBroadphase4D
             zMax = Math.Max(zMax, aabbMax.z);
             wMin = Math.Min(wMin, aabbMin.w);
             wMax = Math.Max(wMax, aabbMax.w);
+            vMin = Math.Min(vMin, aabbMin.v);
+            vMax = Math.Max(vMax, aabbMax.v);
         }
         // Some padding
         xMin -= 100;
@@ -205,9 +242,11 @@ public class GridBroadphase4D
         zMax += 100;
         wMin -= 100;
         wMax += 100;
-        this.boundsMin = new Vector4(xMin, yMin, zMin, wMin);
-        this.boundsMax = new Vector4(xMax, yMax, zMax, wMax);
-        this.cellSize = new Vector2((xMax - xMin) / CELL_DIV.x, (zMax - zMin) / CELL_DIV.y);
+        vMin -= 100;
+        vMax += 100;
+        this.boundsMin = new Vector5(xMin, yMin, zMin, wMin, vMin);
+        this.boundsMax = new Vector5(xMax, yMax, zMax, wMax, vMax);
+        this.cellSize = new Vector3((xMax - xMin) / CELL_DIV.x, (zMax - zMin) / CELL_DIV.y, (wMax - wMin) / CELL_DIV.z);
 
         // Insert the objects
         for (var i = 0; i < CELL_SIZE; i++)
@@ -249,7 +288,7 @@ public class GridBroadphase4D
         }
     }
 
-    public List<ColliderGroup4D> BoundingSearch(Vector4 aabbMin, Vector4 aabbMax)
+    public List<Collider4D> BoundingSearch(Vector4 aabbMin, Vector4 aabbMax)
     {
         var queryMinX = Math.Max(aabbMin.x,boundsMin.x);
         var queryMinY = Math.Max(aabbMin.z,boundsMin.z);
@@ -269,7 +308,7 @@ public class GridBroadphase4D
         if (yEnd > CELL_SIZE)
             yEnd = CELL_SIZE;
 
-        var foundSurfaces = new List<ColliderGroup4D>();
+        var foundSurfaces = new List<Collider4D>();
 
         searchKey++;
 
@@ -306,5 +345,4 @@ public class GridBroadphase4D
     {
         return aMin.x <= bMin.x && aMin.y <= bMin.y && aMin.z <= bMin.z && aMin.w <= bMin.w && aMax.x >= bMax.x && aMax.y >= bMax.y && aMax.z >= bMax.z && aMax.w >= bMax.w;
     }
-}
-
+}*/

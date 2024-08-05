@@ -123,6 +123,29 @@ public class EditorMeshBuilder4D : EditorWindow {
         {
             MergeMeshes4D(Selection.gameObjects.Where(x => x.GetComponent<Object4D>() != null).Select(x => x.GetComponent<Object4D>()).ToArray());
         }
+        if (GUILayout.Button("Save Mesh"))
+        {
+            var meshFileName = EditorUtility.SaveFilePanel("Save Mesh as", "Assets/Meshes4D", "", "mesh");
+            if (meshFileName != "" && meshFileName != null)
+            {
+                meshFileName = Path.GetRelativePath(".", meshFileName);
+                var mf = Selection.activeGameObject.GetComponent<MeshFilter>();
+                var sf = Selection.activeGameObject.GetComponent<ShadowFilter>();
+
+                Mesh tempMesh = (Mesh)UnityEngine.Object.Instantiate(mf.mesh);
+                Mesh tempShadowMesh = (Mesh)UnityEngine.Object.Instantiate(sf.shadowMesh);
+                Mesh tempWireMesh = (Mesh)UnityEngine.Object.Instantiate(sf.wireMesh);
+
+
+                AssetDatabase.CreateAsset(tempMesh, meshFileName);
+                AssetDatabase.CreateAsset(tempShadowMesh, meshFileName.Replace(".mesh", "_s.mesh"));
+                AssetDatabase.CreateAsset(tempWireMesh, meshFileName.Replace(".mesh", "_w.mesh"));
+
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+                AssetDatabase.ImportAsset(meshFileName, ImportAssetOptions.ForceUpdate);
+            }
+        }
         EditorGUILayout.EndFoldoutHeaderGroup();
 
         //// 4D Meshbuilder operations

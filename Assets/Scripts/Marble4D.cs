@@ -32,7 +32,7 @@ public enum MarbleMode
     Finish
 }
 
-public class Marble4D : MonoBehaviour
+public class Marble4D : MBObject
 {
     public Vector4 position;
     public Vector4 velocity;
@@ -90,7 +90,6 @@ public class Marble4D : MonoBehaviour
     [System.NonSerialized] public MarbleMode mode;
 
     public MarbleCameraController4D camera;
-    [System.NonSerialized] public MarbleWorld4D world;
 
     Object4D obj4D;
 
@@ -159,35 +158,46 @@ public class Marble4D : MonoBehaviour
     {
         Collider4D.Hit hit = Collider4D.Hit.Empty;
         var colliders = world.collisionWorld4D.SphereIntersection(position, _radius);
-        foreach (Collider4D collider in colliders)
+        foreach (var cg in colliders)
         {
-            if (collider.gameObject == this.gameObject) continue;
-
-            Transform4D localToWorld4D = collider.obj4D.WorldTransform4D();
-            Transform4D worldToLocal4D = localToWorld4D.inverse;
-
-            if (collider.Collide(localToWorld4D, worldToLocal4D, position, _radius, ref hit))
+            if (!cg.IntersectsAABB(position, _radius)) continue;
+            foreach (var collider in cg.colliders)
             {
-                switch (collider.type)
-                {
-                    case ColliderType.Collideable:
-                    {
-                        var coll = new CollisionInfo();
-                        coll.normal = hit.displacement.normalized;
-                        coll.restitution = 1f;
-                        coll.friction = 1;
-                        coll.velocity = default(Vector4);
-                        coll.point = position + hit.displacement;
-                        coll.penetration = 0;
-                        contacts.Add(coll);
-                    }
-                    break;
+                if (collider.gameObject == this.gameObject) continue;
 
-                    case ColliderType.Finish:
+                Transform4D localToWorld4D = collider.obj4D.WorldTransform4D();
+                Transform4D worldToLocal4D = collider.obj4D.InverseWorldTransform4D();
+
+                if (collider.Collide(localToWorld4D, worldToLocal4D, position, _radius, ref hit))
+                {
+                    switch (collider.type)
                     {
-                        world.TouchFinish();
+                        case ColliderType.Collideable:
+                            {
+                                var coll = new CollisionInfo();
+                                coll.normal = hit.displacement.normalized;
+                                coll.restitution = 1f;
+                                coll.friction = 1;
+                                coll.velocity = default(Vector4);
+                                coll.point = position + hit.displacement;
+                                coll.penetration = 0;
+                                contacts.Add(coll);
+                            }
+                            break;
+
+                        case ColliderType.Trigger:
+                            {
+                                var tcomp = collider.gameObject.GetComponent<Trigger>();
+                                tcomp.OnCollide(this);
+                            }
+                            break;
+
+                        case ColliderType.Finish:
+                            {
+                                world.TouchFinish();
+                            }
+                            break;
                     }
-                    break;
                 }
             }
         }

@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Edge
-  m_Shader: {fileID: 4800000, guid: 6986b2517ded7954f8b10e312a702488, type: 3}
+  m_Name: Marble
+  m_Shader: {fileID: 4800000, guid: 74709f603a65d674eb1eb807369edd99, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -28,7 +28,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _CellTex:
-        m_Texture: {fileID: 11700000, guid: 3fa72b311480ab34caed17d3af8c869f, type: 2}
+        m_Texture: {fileID: 11700000, guid: 54f01475c1f8b3649b90782fe1d1805d, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailAlbedoMap:
@@ -64,8 +64,8 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TileTex:
-        m_Texture: {fileID: 11700000, guid: 3fa72b311480ab34caed17d3af8c869f, type: 2}
-        m_Scale: {x: 0, y: 0}
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
@@ -73,26 +73,21 @@ Material:
     - _BumpScale: 1
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
-    - _DitherDist: 3
-    - _DitherRadius: 2
     - _DstBlend: 0
     - _GSize: 0
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
-    - _GridFreq: 2
+    - _GridFreq: 0.5
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
-    - _Offset: 1.45
-    - _OffsetW: 0.5
-    - _OffsetX: 0.5
+    - _OffsetW: 0
+    - _OffsetX: 0
     - _OffsetY: 0
-    - _OffsetZ: 0.5
+    - _OffsetZ: 0
     - _Parallax: 0.02
-    - _ShadowDist: 40
-    - _Size: 1
-    - _SizeTex: 1
+    - _ShadowDist: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SpecularMul: 0
@@ -101,8 +96,9 @@ Material:
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
+    - _CircleColor: {r: 0, g: 0, b: 0, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 0.2}
     - _Color2: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _TileTexST: {r: 4, g: 4, b: 4, a: 4}
+    - _TileTexST: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

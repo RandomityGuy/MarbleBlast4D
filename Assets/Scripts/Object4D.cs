@@ -52,6 +52,9 @@ public class Object4D : MonoBehaviour {
 
     private Transform transf;
     private Transform4D cachedLocalTransform4D;
+    private bool setWorldInverseTransform = false;
+    public bool dynamicEntity = false;
+    private Transform4D cachedWorldInverseTransform4D;
     private Object4D parent;
 
     public void Awake() {
@@ -236,6 +239,17 @@ public class Object4D : MonoBehaviour {
 
         //Return the result
         return worldTransform4D;
+    }
+
+    public Transform4D InverseWorldTransform4D()
+    {
+        if (dynamicEntity) return WorldTransform4D().inverse;
+        if (!setWorldInverseTransform)
+        {
+            cachedWorldInverseTransform4D = WorldTransform4D().inverse;
+            setWorldInverseTransform = true;
+        }
+        return cachedWorldInverseTransform4D;
     }
 
     private static Object4D FindParent(Transform self) {

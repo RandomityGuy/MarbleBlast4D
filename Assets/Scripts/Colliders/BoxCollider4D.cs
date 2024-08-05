@@ -40,7 +40,6 @@ public class BoxCollider4D : Collider4D {
             obj4D = gameObject.GetComponent<Object4D>();
         }
         var wt = obj4D.WorldTransform4D();
-        wt.matrix = colliderTransform * wt.matrix;
 
         var points = new Vector4[16];
 

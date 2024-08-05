@@ -42,7 +42,6 @@ public class ParallelotopeCollider4D : Collider4D {
             obj4D = gameObject.GetComponent<Object4D>();
         }
         var wt = obj4D.WorldTransform4D();
-        wt.matrix = colliderTransform * wt.matrix;
 
         var points = new Vector4[16];
         var i = 0;
@@ -57,6 +56,28 @@ public class ParallelotopeCollider4D : Collider4D {
             }
         }
 
+        Gizmos.DrawLine(points[0], points[1]);
+        Gizmos.DrawLine(points[0], points[2]);
+        Gizmos.DrawLine(points[1], points[3]);
+        Gizmos.DrawLine(points[2], points[3]);
+        Gizmos.DrawLine(points[0], points[4]);
+        Gizmos.DrawLine(points[6], points[7]);
+        Gizmos.DrawLine(points[4], points[5]);
+        Gizmos.DrawLine(points[4], points[6]);
+        Gizmos.DrawLine(points[3], points[7]);
+        Gizmos.DrawLine(points[7], points[5]);
+        Gizmos.DrawLine(points[5], points[1]);
+        Gizmos.DrawLine(points[2], points[6]);
+
+        for (i = 0; i < 8; i++)
+        {
+            // Swap y and w
+            var temp = points[i].y;
+            points[i].y = -points[i].w;
+            points[i].w = temp;
+        }
+
+        // Volume
         Gizmos.DrawLine(points[0], points[1]);
         Gizmos.DrawLine(points[0], points[2]);
         Gizmos.DrawLine(points[1], points[3]);

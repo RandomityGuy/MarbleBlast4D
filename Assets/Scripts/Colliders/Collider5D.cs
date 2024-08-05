@@ -27,8 +27,15 @@ public abstract class Collider5D : MonoBehaviour {
     public bool isFloor = false;
     public bool extendedRange = false;
 
+    public ColliderType type = ColliderType.Collideable;
+
+    [System.NonSerialized] public int key = -1;
+
     [HideInInspector] public Vector5 aabbMin = Vector5.one * float.MaxValue;
     [HideInInspector] public Vector5 aabbMax = Vector5.one * float.MinValue;
+
+    [HideInInspector] public Vector5 worldAabbMin = Vector5.one * float.MaxValue;
+    [HideInInspector] public Vector5 worldAabbMax = Vector5.one * float.MinValue;
 
     public static Dictionary<int, ColliderGroup5D> colliders = new();
     public static void UpdateColliders() {
@@ -62,6 +69,17 @@ public abstract class Collider5D : MonoBehaviour {
     protected void AddBoundingPoint(Vector5 pt) {
         aabbMin = Vector5.Min(aabbMin, pt);
         aabbMax = Vector5.Max(aabbMax, pt);
+    }
+
+    public void CalculateWorldAABB()
+    {
+        var localToWorld4D = obj5D.WorldTransform5D();
+
+        var p1 = localToWorld4D * aabbMin;
+        var p2 = localToWorld4D * aabbMax;
+
+        worldAabbMin = new Vector5(Mathf.Min(p1.x, p2.x), Mathf.Min(p1.y, p2.y), Mathf.Min(p1.z, p2.z), Mathf.Min(p1.w, p2.w), Mathf.Min(p1.v, p2.v));
+        worldAabbMax = new Vector5(Mathf.Max(p1.x, p2.x), Mathf.Max(p1.y, p2.y), Mathf.Max(p1.z, p2.z), Mathf.Max(p1.w, p2.w), Mathf.Max(p1.v, p2.v));
     }
 
     public bool Collide(Vector5 worldPt, float radius, ref Hit hit) {

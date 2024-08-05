@@ -30,9 +30,9 @@ Shader "Custom/EdgeND" {
       CGPROGRAM
       #define PROC_TEXTURE
       #define LOCAL_UV
-#if !defined(IS_EDITOR)
-      #define USE_DITHER
-#endif
+//#if !defined(IS_EDITOR)
+//      #define USE_DITHER
+//#endif
       #define W 0.05
       float4 _Color2;
       float _GridFreq;

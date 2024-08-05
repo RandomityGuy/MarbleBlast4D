@@ -26,9 +26,9 @@ Shader "Custom/CircleTileND" {
     
       CGPROGRAM
       #define PROC_TEXTURE
-#if !defined(IS_EDITOR)
-      #define USE_DITHER
-#endif
+//#if !defined(IS_EDITOR)
+//      #define USE_DITHER
+//#endif
       #define LOCAL_UV
       #define W 0.05
       float4 _Color2;
