@@ -616,12 +616,12 @@ public class GeneratePieces4D : EditorWindow
 
     static void AddCellShadow(Mesh4D mesh, Vector4 a1, Vector4 a2, Vector4 A1, Vector4 A2, Vector4 b1, Vector4 b2, Vector4 B1, Vector4 B2, byte shadowFlags = 0b111111)
     {
-        if ((shadowFlags & 0b10) > 0) mesh.AddQuadShadow(a2, b2, a1, b1); // Bottom
-        if ((shadowFlags & 0b1) > 0) mesh.AddQuadShadow(A1, B1, A2, B2); // Top
+        if ((shadowFlags & 0b000010) > 0) mesh.AddQuadShadow(a2, b2, a1, b1); // Bottom
+        if ((shadowFlags & 0b000001) > 0) mesh.AddQuadShadow(A1, B1, A2, B2); // Top
         if ((shadowFlags & 0b100000) > 0) mesh.AddQuadShadow(A1, a1, B1, b1); // Left
-        if ((shadowFlags & 0b10000) > 0) mesh.AddQuadShadow(a2, A2, b2, B2); // Right
-        if ((shadowFlags & 0b100) > 0) mesh.AddQuadShadow(a2, a1, A2, A1); // Front
-        if ((shadowFlags & 0b1000) > 0) mesh.AddQuadShadow(b1, b2, B1, B2); // Back
+        if ((shadowFlags & 0b010000) > 0) mesh.AddQuadShadow(a2, A2, b2, B2); // Right
+        if ((shadowFlags & 0b000100) > 0) mesh.AddQuadShadow(a2, a1, A2, A1); // Front
+        if ((shadowFlags & 0b001000) > 0) mesh.AddQuadShadow(b1, b2, B1, B2); // Back
     }
 
     static void AddTesseractShadows(Mesh4D mesh, Vector4[] s, Vector4[] e, byte facetFlags = 0b11_11_11_11)
@@ -888,21 +888,34 @@ public class GeneratePieces4D : EditorWindow
             ep[2].y = ep[3].y = ep[6].y = ep[7].y = endOffset.y + 0.5f + (edgeHeight);
 
             var yOff = new Vector4(0, edgeHeight, 0, 0);
+            var yHeight = new Vector4(0, 0.5f + edgeHeight, 0, 0);
+
+            var fbFlags = (byte)((capFront ? 0b010011 : 0) | (capBack ? 0b100000 : 0));
 
             // now actually add them
             // Left
             if (edgeLeft)
             {
                 AddTesseract(mesh, new Vector4[] { sp[0], s1, sp[2], s3 + yOff, sp[4], s5, sp[6], s7 + yOff }, new Vector4[] { ep[0], e1, ep[2], e3 + yOff, ep[4], e5, ep[6], e7 + yOff }, false, ToFlagsN(true, true, capBack, capFront));
+                // Volume shadows
                 mesh.AddQuadShadow(s1, e1, s5, e5);
                 mesh.AddQuadShadow(sp[0], ep[0], sp[4], ep[4]);
+                if (capBack)
+                    AddCellShadow(mesh, s1, s5, s1 + yHeight, s5 + yHeight, sp[0], sp[4], sp[0] + yHeight, sp[4] + yHeight);
+                if (capFront)
+                    AddCellShadow(mesh, e1, e5, e1 + yHeight, e5 + yHeight, ep[0], ep[4], ep[0] + yHeight, ep[4] + yHeight);
             }
             // Right
             if (edgeRight)
             {
                 AddTesseract(mesh, new Vector4[] { s2, sp[1], s4 + yOff, sp[3], s6, sp[5], s8 + yOff, sp[7] }, new Vector4[] { e2, ep[1], e4 + yOff, ep[3], e6, ep[5], e8 + yOff, ep[7] }, false, ToFlagsN(true, true, capBack, capFront));
+                // Volume shadows
                 mesh.AddQuadShadow(s2, e2, s6, e6);
                 mesh.AddQuadShadow(sp[1], sp[5], ep[1], ep[5]);
+                if (capBack)
+                    AddCellShadow(mesh, s2, s6, s2 + yHeight, s6 + yHeight, sp[1], sp[5], sp[1] + yHeight, sp[5] + yHeight);
+                if (capFront)
+                    AddCellShadow(mesh, e2, e6, e2 + yHeight, e6 + yHeight, ep[1], ep[5], ep[1] + yHeight, ep[5] + yHeight);
             }
 
             sp = new Vector4[] { s1, s2, s3, s4, s5, s6, s7, s8 };
@@ -923,19 +936,30 @@ public class GeneratePieces4D : EditorWindow
             if (edgeKenth)
             {
                 AddTesseract(mesh, new Vector4[] { s1, sp[0], s3 + yOff, sp[2], s2, sp[1], s4 + yOff, sp[3] }, new Vector4[] { e1, ep[0], e3 + yOff, ep[2], e2, ep[1], e4 + yOff, ep[3] }, false, ToFlagsN(true, true, capBack, capFront));
+                // Volume shadows
                 mesh.AddQuadShadow(s1, e1, s2, e2);
                 mesh.AddQuadShadow(sp[0], ep[0], sp[1], ep[1]);
+                if (capBack)
+                    AddCellShadow(mesh, s1, s2, s1 + yHeight, s2 + yHeight, sp[0], sp[1], sp[0] + yHeight, sp[1] + yHeight);
+                if (capFront)
+                    AddCellShadow(mesh, e1, e2, e1 + yHeight, e2 + yHeight, ep[0], ep[1], ep[0] + yHeight, ep[1] + yHeight);
             }
             // Anth
             if (edgeAnth)
             {
                 AddTesseract(mesh, new Vector4[] { sp[4], s5, sp[6], s7 + yOff, sp[5], s6, sp[7], s8 + yOff }, new Vector4[] { ep[4], e5, ep[6], e7 + yOff, ep[5], e6, ep[7], e8 + yOff }, false, ToFlagsN(true, true, capBack, capFront));
+                // Volume shadows
                 mesh.AddQuadShadow(s5, e5, s6, e6);
                 mesh.AddQuadShadow(sp[4], ep[4], sp[5], ep[5]);
+                if (capBack)
+                    AddCellShadow(mesh, s5, s6, s5 + yHeight, s6 + yHeight, sp[4], sp[5], sp[4] + yHeight, sp[5] + yHeight);
+                if (capFront)
+                    AddCellShadow(mesh, e5, e6, e5 + yHeight, e6 + yHeight, ep[4], ep[5], ep[4] + yHeight, ep[5] + yHeight);
             }
         }
         // Edge corners
         {
+            var yHeight = new Vector4(0, 0.5f + edgeHeight, 0, 0);
             var yOff = new Vector4(0, edgeHeight, 0, 0);
             var sp = new Vector4[] { s1, s2, s3, s4, s5, s6, s7, s8 };
             var ep = new Vector4[8];
@@ -971,42 +995,10 @@ public class GeneratePieces4D : EditorWindow
                 if (capFront)
                     mesh.AddQuadShadow(et[4], et[0], et[5], et[1]);
                 // Normal view shadows
-                // Side faces
-                // mesh.AddQuadShadow(st[0], et[0], st[2], et[2]); // X = -1.5 W = -1.0
-                mesh.AddQuadShadow(st[1], et[1], st[3], et[3]); // X = -1.5 W = -1.5
-                mesh.AddQuadShadow(st[4], et[4], st[6], et[6]); // X = 1.0 W = 1.0
-                // mesh.AddQuadShadow(st[4], et[4], st[6], et[6]); 
-                // mesh.AddQuadShadow(st[5], et[5], st[7], et[7]);
-                // Top faces
-                mesh.AddQuadShadow(st[3], st[2], et[3], et[2]);
-                mesh.AddQuadShadow(st[3], st[7], et[3], et[7]);
-                // Left face
-                // mesh.AddQuadShadow(et[2], st[2], et[0], st[0]);
-                // Right face
-                //mesh.AddQuadShadow(et[6], st[6], et[4], st[4]);
-                // Top face
-                // mesh.AddQuadShadow(et[2], st[2], et[6], st[6]);
-                // Back face
-                //mesh.AddQuadShadow(st[0], st[4], st[2], st[6]);
-                // Front face
-                //mesh.AddQuadShadow(et[0], et[4], et[2], et[6]);
-
-                // W normal view
-                //mesh.AddQuadShadow(st[7], et[7], st[5], et[5]);
-                //mesh.AddQuadShadow(st[6], et[6], st[7], et[7]);
-                // mesh.AddQuadShadow(st[0], et[0], st[7], et[7]);
-                //if (capBack)
-                //    mesh.AddQuadShadow(st[1], st[2], st[7], st[6]);
-                //if (capFront)
-                //    mesh.AddQuadShadow(et[2], et[1], et[6], et[7]);
-                //// Right face
-                //mesh.AddQuadShadow(et[6], st[6], et[4], st[4]);
-                //// Top face
-                //mesh.AddQuadShadow(et[2], st[2], et[6], st[6]);
-                //// Back face
-                //mesh.AddQuadShadow(st[1], st[4], st[2], st[6]);
-                //// Front face
-                //mesh.AddQuadShadow(et[1], et[4], et[2], et[6]);
+                AddCellShadow(mesh, st[1], st[5], st[1] + yHeight, st[5] + yHeight, et[1], et[5], et[1] + yHeight, et[5] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
+                AddCellShadow(mesh, st[1], st[0], st[1] + yHeight, st[0] + yHeight, et[1], et[0], et[1] + yHeight, et[0] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
+                AddCellShadow(mesh, st[0], st[4], st[0] + yHeight, st[4] + yHeight, et[0], et[4], et[0] + yHeight, et[4] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
+                AddCellShadow(mesh, st[5], st[4], st[5] + yHeight, st[4] + yHeight, et[5], et[4], et[5] + yHeight, et[4] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
             }
             for (var i = 0; i < sp.Length; i++)
             {
@@ -1017,6 +1009,20 @@ public class GeneratePieces4D : EditorWindow
             if (edgeRight && edgeKenth)
             {
                 AddTesseract(mesh, st, et, false, ToFlagsN(true, true, capBack, capFront));
+                // Volume view shadows
+                mesh.AddQuadShadow(st[0], et[0], st[1], et[1]);
+                mesh.AddQuadShadow(st[4], et[4], st[5], et[5]);
+                mesh.AddQuadShadow(st[0], et[0], st[4], et[4]);
+                mesh.AddQuadShadow(st[1], et[1], st[5], et[5]);
+                if (capBack)
+                    mesh.AddQuadShadow(st[0], st[4], st[1], st[5]);
+                if (capFront)
+                    mesh.AddQuadShadow(et[4], et[0], et[5], et[1]);
+                // Normal view shadows
+                AddCellShadow(mesh, st[1], st[5], st[1] + yHeight, st[5] + yHeight, et[1], et[5], et[1] + yHeight, et[5] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
+                AddCellShadow(mesh, st[1], st[0], st[1] + yHeight, st[0] + yHeight, et[1], et[0], et[1] + yHeight, et[0] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
+                AddCellShadow(mesh, st[0], st[4], st[0] + yHeight, st[4] + yHeight, et[0], et[4], et[0] + yHeight, et[4] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
+                AddCellShadow(mesh, st[5], st[4], st[5] + yHeight, st[4] + yHeight, et[5], et[4], et[5] + yHeight, et[4] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
             }
             for (var i = 0; i < sp.Length; i++)
             {
@@ -1027,6 +1033,20 @@ public class GeneratePieces4D : EditorWindow
             if (edgeRight && edgeAnth)
             {
                 AddTesseract(mesh, st, et, false, ToFlagsN(true, true, capBack, capFront));
+                // Volume view shadows
+                mesh.AddQuadShadow(st[0], et[0], st[1], et[1]);
+                mesh.AddQuadShadow(st[4], et[4], st[5], et[5]);
+                mesh.AddQuadShadow(st[0], et[0], st[4], et[4]);
+                mesh.AddQuadShadow(st[1], et[1], st[5], et[5]);
+                if (capBack)
+                    mesh.AddQuadShadow(st[0], st[4], st[1], st[5]);
+                if (capFront)
+                    mesh.AddQuadShadow(et[4], et[0], et[5], et[1]);
+                // Normal view shadows
+                AddCellShadow(mesh, st[1], st[5], st[1] + yHeight, st[5] + yHeight, et[1], et[5], et[1] + yHeight, et[5] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
+                AddCellShadow(mesh, st[1], st[0], st[1] + yHeight, st[0] + yHeight, et[1], et[0], et[1] + yHeight, et[0] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
+                AddCellShadow(mesh, st[0], st[4], st[0] + yHeight, st[4] + yHeight, et[0], et[4], et[0] + yHeight, et[4] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
+                AddCellShadow(mesh, st[5], st[4], st[5] + yHeight, st[4] + yHeight, et[5], et[4], et[5] + yHeight, et[4] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
             }
             for (var i = 0; i < sp.Length; i++)
             {
@@ -1037,6 +1057,20 @@ public class GeneratePieces4D : EditorWindow
             if (edgeLeft && edgeAnth)
             {
                 AddTesseract(mesh, st, et, false, ToFlagsN(true, true, capBack, capFront));
+                // Volume view shadows
+                mesh.AddQuadShadow(st[0], et[0], st[1], et[1]);
+                mesh.AddQuadShadow(st[4], et[4], st[5], et[5]);
+                mesh.AddQuadShadow(st[0], et[0], st[4], et[4]);
+                mesh.AddQuadShadow(st[1], et[1], st[5], et[5]);
+                if (capBack)
+                    mesh.AddQuadShadow(st[0], st[4], st[1], st[5]);
+                if (capFront)
+                    mesh.AddQuadShadow(et[4], et[0], et[5], et[1]);
+                // Normal view shadows
+                AddCellShadow(mesh, st[1], st[5], st[1] + yHeight, st[5] + yHeight, et[1], et[5], et[1] + yHeight, et[5] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
+                AddCellShadow(mesh, st[1], st[0], st[1] + yHeight, st[0] + yHeight, et[1], et[0], et[1] + yHeight, et[0] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
+                AddCellShadow(mesh, st[0], st[4], st[0] + yHeight, st[4] + yHeight, et[0], et[4], et[0] + yHeight, et[4] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
+                AddCellShadow(mesh, st[5], st[4], st[5] + yHeight, st[4] + yHeight, et[5], et[4], et[5] + yHeight, et[4] + yHeight, ToFlagsN(true, true, true, true, capFront, capBack));
             }
         }
 
