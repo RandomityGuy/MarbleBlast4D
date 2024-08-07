@@ -1,7 +1,7 @@
 //Globals
 uniform float4x4 _CamMatrix;
 uniform float4 _CamPosition;
-#if defined(IS_EDITOR) || defined(IS_EDITOR_V)
+#if defined(IS_EDITOR) || defined(IS_EDITOR_V) || defined(IS_EDITOR_V5D)
 uniform float _EditorSliceW;
 #endif
 
@@ -67,6 +67,9 @@ struct v2f {
 #elif defined(IS_EDITOR_V)
 #define ModelToCam(V) V = float4(mul(UNITY_MATRIX_V, float4(V.x, -V.w, V.z, 1.0)).xyz, V.y - _EditorSliceW)
 #define CamToModel(V) V = float4(mul(V.xyz - UNITY_MATRIX_V._m03_m13_m23, (float3x3)UNITY_MATRIX_V), V.w + _EditorSliceW); V.yw = float2(V.w, -V.y)
+#elif defined(IS_EDITOR_V5D)
+#define ModelToCam(V) V = float4(mul(UNITY_MATRIX_V, float4(-V.w, V.y, V.z, 1.0)).xyz, V.x - _EditorSliceW)
+#define CamToModel(V) V = float4(mul(V.xyz - UNITY_MATRIX_V._m03_m13_m23, (float3x3)UNITY_MATRIX_V), V.x + _EditorSliceW); V.xw = float2(V.w, -V.x)
 #else
 #define ModelToCam(V) V = mul(_CamMatrix, V + _CamPosition)
 #define CamToModel(V) V = mul(V, _CamMatrix) - _CamPosition
@@ -162,7 +165,7 @@ v2f vert(vin v) {
 #endif
 
   //Apply projection
-#if !defined(IS_EDITOR) && !defined(IS_EDITOR_V)
+#if !defined(IS_EDITOR) && !defined(IS_EDITOR_V) && !defined(IS_EDITOR_V5D)
   o.vertex = mul(UNITY_MATRIX_V, float4(o.vertex.x, o.vertex.y, -o.vertex.z, 1.0));
   o.camPt.xyz = o.vertex.xyz;
 #endif

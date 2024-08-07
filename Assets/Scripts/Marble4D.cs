@@ -1,4 +1,5 @@
 using R40;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using static UnityEditor.PlayerSettings;
@@ -43,7 +44,7 @@ public class Marble4D : MBObject
 
     Vector4 lastRenderedPosition;
 
-    Vector4 currentUp = new Vector4(0, 1, 0, 0);
+    public Vector4 currentUp = new Vector4(0, 1, 0, 0);
 
     private float _radius = 0.2f;
 
@@ -85,9 +86,12 @@ public class Marble4D : MBObject
 
     private float _totalTime;
 
+    public Vector4 lastContactNormal;
+
     bool isOob;
 
     [System.NonSerialized] public MarbleMode mode;
+    [NonSerialized] public PowerUp heldPowerup;
 
     public MarbleCameraController4D camera;
 
@@ -119,7 +123,7 @@ public class Marble4D : MBObject
         this.gameObject.GetComponent<Object4D>().localPosition4D = pos;
     }
 
-    private void FixedUpdate()
+    public void UpdateMB(TimeState t)
     {
         lastRenderedPosition = position;
 
@@ -140,13 +144,13 @@ public class Marble4D : MBObject
             mv.mv.z = 1;
         if (InputManager.GetKey(InputManager.KeyBind.Putt))
             mv.jump = true;
-        
+
         mv.powerup = false;
 
-        AdvancePhysics(mv, Time.fixedDeltaTime);
-        position += velocity * Time.fixedDeltaTime;
+        AdvancePhysics(mv, t);
+        position += velocity * t.dt;
 
-        var deltaOmega = omega * Time.fixedDeltaTime / 2;
+        var deltaOmega = omega * t.dt / 2;
 
         orientation = orientation - (deltaOmega * orientation);
         orientation.Normalize();
@@ -154,7 +158,7 @@ public class Marble4D : MBObject
         obj4D.localRotation4D = orientation.ToMatrix();
     }
 
-    void FindContacts()
+    void FindContacts(TimeState t)
     {
         Collider4D.Hit hit = Collider4D.Hit.Empty;
         var colliders = world.collisionWorld4D.SphereIntersection(position, _radius);
@@ -188,7 +192,7 @@ public class Marble4D : MBObject
                         case ColliderType.Trigger:
                             {
                                 var tcomp = collider.gameObject.GetComponent<Trigger>();
-                                tcomp.OnCollide(this);
+                                tcomp.OnCollide(this, t);
                             }
                             break;
 
@@ -233,9 +237,10 @@ public class Marble4D : MBObject
         //}
     }
 
-    void AdvancePhysics(Move mv, float dt)
+    void AdvancePhysics(Move mv, TimeState t)
     {
-        var remainingTime = dt;
+        var dt = t.dt;
+        var remainingTime = t.dt;
         var it = 0;
         while (remainingTime > 0 && it < 10)
         {
@@ -243,15 +248,15 @@ public class Marble4D : MBObject
             if (timeStep > remainingTime)
                 timeStep = remainingTime;
 
-            FindContacts();
+            FindContacts(t);
 
             bool isCentered = this._computeMoveForces(mv, omega, out BiVector3 aControl, out BiVector3 desiredOmega);
             this._velocityCancel(contacts, ref velocity, ref omega, isCentered, false);
             Vector4 A = this._getExternalForces(mv, contacts);
             BiVector3 a;
-            this._applyContactForces(dt, mv, contacts, isCentered, aControl, desiredOmega, ref velocity, ref omega, ref A, out a);
-            velocity += A * dt;
-            omega += a * dt;
+            this._applyContactForces(timeStep, mv, contacts, isCentered, aControl, desiredOmega, ref velocity, ref omega, ref A, out a);
+            velocity += A * timeStep;
+            omega += a * timeStep;
 
             if (this.mode == MarbleMode.Start)
             {
@@ -262,13 +267,19 @@ public class Marble4D : MBObject
             }
 
             this._velocityCancel(contacts, ref velocity, ref omega, isCentered, true);
-            this._totalTime += dt;
+            this._totalTime += timeStep;
             if (contacts.Count != 0)
             {
-                this._contactTime += dt;
+                this._contactTime += timeStep;
             }
 
             contacts.Clear();
+
+            if (this.heldPowerup != null && InputManager.GetKey(KeyCode.Mouse0))
+            {
+                this.heldPowerup.Use(this, t);
+                this.heldPowerup = null;
+            }
 
             remainingTime -= timeStep;
             it++;
@@ -440,6 +451,8 @@ public class Marble4D : MBObject
             A += AFriction;
             a += aFriction;
 
+            lastContactNormal = bestContact.normal;
+
         }
         a += aControl;
         if (this.mode == MarbleMode.Finish)
@@ -609,7 +622,7 @@ public class Marble4D : MBObject
         }
     }
 
-    private void _getMarbleAxis(out Vector4 sideDir, out Vector4 motionDir, out Vector4 upDir, out Vector4 wDir)
+    public void _getMarbleAxis(out Vector4 sideDir, out Vector4 motionDir, out Vector4 upDir, out Vector4 wDir)
     {
         Vector4 gWorkGravityDir = -currentUp;
         upDir = -gWorkGravityDir;
@@ -627,8 +640,16 @@ public class Marble4D : MBObject
         }
         else
         {
+            // Discard the up component from the directions
+            sideDir -= Vector4.Dot(sideDir, upDir) * upDir;
+            motionDir -= Vector4.Dot(motionDir, upDir) * upDir;
+
+            sideDir.Normalize();
+            motionDir.Normalize();
+
             upDir = camera.camMatrix * upDir;
             wDir = camera.camMatrix * wDir;
+            wDir *= -1;
         }
         //Matrix camMat = Matrix.Identity;
         //if (this._cameraX != null && this._cameraY != null)

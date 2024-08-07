@@ -400,6 +400,70 @@ public class GenerateMeshes4D : MonoBehaviour {
         return new Mesh4DBuilder(mesh4D);
     }
 
+    public static Mesh4DBuilder GenerateRevolveScrew(Mesh mesh3D, int segments, Vector3 offset, Vector3 addOffset, float revAngle = 360.0f)
+    {
+        //Get the primitive mesh from a GameObject.
+        // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
+
+        //Create a new mesh4D
+        Mesh4D mesh4D = new Mesh4D(mesh3D.subMeshCount);
+
+        //Scan through the 3D mesh
+        Vector3[] verticies = mesh3D.vertices;
+        Vector2[] uvs = mesh3D.uv;
+        bool useUVs = (uvs != null && uvs.Length > 0);
+        for (int s = 0; s < mesh3D.subMeshCount; ++s)
+        {
+            int[] indices = mesh3D.GetIndices(s);
+            Debug.Assert(indices.Length % 3 == 0);
+            for (int r = 0; r < segments; ++r)
+            {
+                //Determine the angle for this segment
+                float angle1 = r * revAngle / segments;
+                float angle2 = (r + 1) * revAngle / segments;
+                if (revAngle == 360.0f)
+                {
+                    angle2 = ((r + 1) % segments) * 360.0f / segments;
+                }
+                Vector4 segOffset1 = r * addOffset;
+                Vector4 segOffset2 = (r + 1) * addOffset;
+
+                //Convert angle to matrix
+                Matrix4x4 m1 = Transform4D.PlaneRotation(angle1, 2, 3);
+                Matrix4x4 m2 = Transform4D.PlaneRotation(angle2, 2, 3);
+
+                for (int i = 0; i < indices.Length; i += 3)
+                {
+                    Vector4 a = verticies[indices[i]] + offset;
+                    Vector4 b = verticies[indices[i + 1]] + offset;
+                    Vector4 c = verticies[indices[i + 2]] + offset;
+                    float auv = (useUVs ? uvs[indices[i]].y : 0.0f);
+                    float buv = (useUVs ? uvs[indices[i + 1]].y : 0.0f);
+                    float cuv = (useUVs ? uvs[indices[i + 2]].y : 0.0f);
+                    Debug.Assert(a.z > -1e-6f && b.z > -1e-6f && c.z > -1e-6f, "Negative z coordinates in revolution mesh: " + a.z + " " + b.z + " " + c.z);
+                    a.z = Mathf.Max(0.0f, a.z);
+                    b.z = Mathf.Max(0.0f, b.z);
+                    c.z = Mathf.Max(0.0f, c.z);
+                    Vector4 a1 = m1 * a + segOffset1;
+                    Vector4 b1 = m1 * b + segOffset1;
+                    Vector4 c1 = m1 * c + segOffset1;
+                    Vector4 a2 = m2 * a + segOffset2;
+                    Vector4 b2 = m2 * b + segOffset2;
+                    Vector4 c2 = m2 * c + segOffset2;
+
+                    //Walls of the prism
+                    mesh4D.AddHalfCell(a1, a2, b1, b2, c1, c2, auv, auv, buv, buv, cuv, cuv);
+                    mesh4D.AddTriangleShadow(a1, b1, c1);
+                    mesh4D.AddQuadShadow(a1, a2, b1, b2);
+                    mesh4D.AddQuadShadow(a1, a2, c1, c2);
+                    mesh4D.AddQuadShadow(b1, b2, c1, c2);
+                }
+            }
+            mesh4D.NextSubmesh();
+        }
+        return new Mesh4DBuilder(mesh4D);
+    }
+
     public static Mesh4DBuilder Generate4DHoleExtrude(Mesh mesh3D, float thickness, float length, bool capTop = true, bool capBottom = true, bool innerWalls = true) {
         //Get the primitive mesh from a GameObject.
         // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);

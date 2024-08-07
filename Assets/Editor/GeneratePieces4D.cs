@@ -32,6 +32,7 @@ public class GeneratePieces4D : EditorWindow
     // For the *regular* skew tiles
     Vector2Int xwWidth = new Vector2Int(1, 1);
     Vector4 endOffset = Vector4.zero;
+    Material tileMaterial;
 
     [MenuItem("4D/Level Builder 4D")]
     public static void Init()
@@ -43,6 +44,7 @@ public class GeneratePieces4D : EditorWindow
 
     private void OnGUI()
     {
+        tileMaterial = (Material)EditorGUILayout.ObjectField("Tile Material", tileMaterial, typeof(Material));
         tileSize = EditorGUILayout.Vector3IntField("Tile Size", tileSize);
         edgeHeightUnits = EditorGUILayout.IntField("Edge Height", edgeHeightUnits);
         //skewX = EditorGUILayout.Vector4Field("Skew X", skewX);
@@ -75,7 +77,7 @@ public class GeneratePieces4D : EditorWindow
         EditorGUILayout.EndHorizontal();
         if (GUILayout.Button("Flat Tile"))
         {
-            GenerateTileFlat("TileFlat", tileSize.x, tileSize.y, tileSize.z, edgeFront, edgeBack, edgeLeft, edgeRight, edgeAnth, edgeKenth, capFront, capBack, capLeft, capRight, capAnth, capKenth, Matrix4x4.identity, edgeHeightUnits * 0.25f);
+            GenerateTileFlat("TileFlat", tileMaterial, tileSize.x, tileSize.y, tileSize.z, edgeFront, edgeBack, edgeLeft, edgeRight, edgeAnth, edgeKenth, capFront, capBack, capLeft, capRight, capAnth, capKenth, Matrix4x4.identity, edgeHeightUnits * 0.25f);
         }
         //if (GUILayout.Button("Transformed Tile"))
         //{
@@ -89,7 +91,7 @@ public class GeneratePieces4D : EditorWindow
         {
             var edgeFlags = ToFlags(true, true, edgeBack, edgeFront, edgeLeft, edgeRight, edgeAnth, edgeKenth);
             var capFlags = ToFlags(true, true, capBack, capFront, capLeft, capRight, capAnth, capKenth);
-            GenerateTileSkew("TileSkew", endOffset, xwWidth, (byte)(edgeFlags), (byte)capFlags, edgeHeightUnits * 0.5f);
+            GenerateTileSkew("TileSkew", tileMaterial, endOffset, xwWidth, (byte)(edgeFlags), (byte)capFlags, edgeHeightUnits * 0.5f);
         }
         if (GUILayout.Button("Edge"))
         {
@@ -196,7 +198,7 @@ public class GeneratePieces4D : EditorWindow
         return new Mesh4DBuilder(mesh4D);
     }
 
-    public static void GenerateTileFlat(string name, int xSize, int zSize, int wSize, bool edgeFront, bool edgeBack, bool edgeLeft, bool edgeRight, bool edgeAnth, bool edgeKenth, bool capFront, bool capBack, bool capLeft, bool capRight, bool capAnth, bool capKenth, Matrix4x4 transform, float edgeHeight = 0.25f)
+    public static void GenerateTileFlat(string name, Material tileMaterial, int xSize, int zSize, int wSize, bool edgeFront, bool edgeBack, bool edgeLeft, bool edgeRight, bool edgeAnth, bool edgeKenth, bool capFront, bool capBack, bool capLeft, bool capRight, bool capAnth, bool capKenth, Matrix4x4 transform, float edgeHeight = 0.25f)
     {
         var flatPart = GenerateHyperCube(true, true, !edgeLeft && capLeft, !edgeRight && capRight, !edgeFront && capFront, !edgeBack && capBack, !edgeAnth && capAnth, !edgeKenth && capKenth).Scale(xSize, 0.25f, zSize, wSize);
         var mesh = new Mesh4D(2);
@@ -393,10 +395,10 @@ public class GeneratePieces4D : EditorWindow
         var obj = CreateObject4D(mesh, name);
 
         var o4d = obj.GetComponent<Object4D>();
-        o4d.uvOffset = new Vector4(1, 0, 1, 0);
+        o4d.uvOffset = new Vector4(xSize % 2 == 0 ? 1 : 0, 0, zSize % 2 == 0 ? 1 : 0, 0);
 
         var mr = obj.GetComponent<MeshRenderer>();
-        mr.sharedMaterials = new Material[] { AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/GridCool2.mat"), AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Edge.mat") };
+        mr.sharedMaterials = new Material[] { tileMaterial, AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Edge.mat") };
 
         // Now for the colliders
         var flatCollider = obj.AddComponent<BoxCollider4D>();
@@ -817,7 +819,7 @@ public class GeneratePieces4D : EditorWindow
         kenth = ((1 << 0) & flags) > 0;
     }
 
-    public static void GenerateTileSkew(string name, Vector4 endOffset, Vector2Int xwWidth, byte edgeFlags, byte capFlags, float edgeHeight = 0.5f)
+    public static void GenerateTileSkew(string name, Material tileMaterial, Vector4 endOffset, Vector2Int xwWidth, byte edgeFlags, byte capFlags, float edgeHeight = 0.5f)
     {
         var mesh = new Mesh4D(2);
 
@@ -1135,7 +1137,7 @@ public class GeneratePieces4D : EditorWindow
         //bc.basis.SetColumn(2, endOffset.normalized);
 
         var mr = obj.GetComponent<MeshRenderer>();
-        mr.sharedMaterials = new Material[] { AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/GridCool2.mat"), AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Edge.mat") };
+        mr.sharedMaterials = new Material[] { tileMaterial, AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Edge.mat") };
     }
 
     public static void GenerateEdgeTile(string name, Vector4 size, byte capFlags)

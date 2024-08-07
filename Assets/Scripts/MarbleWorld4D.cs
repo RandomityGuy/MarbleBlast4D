@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Unity.VisualScripting.TextureAssets;
 using UnityEngine;
 
 public struct TimeState
@@ -10,6 +11,7 @@ public struct TimeState
     public float currentAttemptTime;
     public float totalAttemptTime;
     public float gameplayClock;
+    public float dt;
 }
 
 [DefaultExecutionOrder(-99)]
@@ -20,11 +22,13 @@ public class MarbleWorld4D : MonoBehaviour
     StartPad startPad;
 
     GemItem[] gems;
+    PowerUp[] powerUps;
     int collectedGems = 0;
 
     TimerComponent timer;
     GemCounter gemCounter;
     [NonSerialized] public TimeState timeState;
+    float bonusTime = 0;
     TimeState? finishTime;
     
     private void Awake()
@@ -44,6 +48,9 @@ public class MarbleWorld4D : MonoBehaviour
         gems = FindObjectsOfType<GemItem>();
         foreach (var gem in gems)
             gem.world = this;
+        powerUps = FindObjectsOfType<PowerUp>();
+        foreach (var powerUp in powerUps)
+            powerUp.world = this;
     }
 
     // Start is called before the first frame update
@@ -66,6 +73,7 @@ public class MarbleWorld4D : MonoBehaviour
         
         timeState.gameplayClock = 0;
         timeState.currentAttemptTime = 0;
+        bonusTime = 0;
         timer.SetTime(timeState.gameplayClock);
         collectedGems = 0;
 
@@ -77,16 +85,39 @@ public class MarbleWorld4D : MonoBehaviour
 
     void UpdateTimer()
     {
-        timeState.currentAttemptTime += Time.fixedDeltaTime;
-        timeState.totalAttemptTime += Time.fixedDeltaTime;
-        if (timeState.currentAttemptTime >= 3.5f)
+        timeState.dt = Time.deltaTime;
+        timeState.currentAttemptTime += Time.deltaTime;
+        timeState.totalAttemptTime += Time.deltaTime;
+
+        if (this.bonusTime != 0 && this.timeState.currentAttemptTime >= 3.5)
         {
-            timeState.gameplayClock += Time.fixedDeltaTime;
+            this.bonusTime -= Time.deltaTime;
+            if (this.bonusTime < 0)
+            {
+                this.timeState.gameplayClock -= this.bonusTime;
+                this.bonusTime = 0;
+            }
+            //if (timeTravelSound == null)
+            //{
+            //    var ttsnd = ResourceLoader.getResource("data/sound/timetravelactive.wav", ResourceLoader.getAudio, this.soundResources);
+            //    timeTravelSound = AudioManager.playSound(ttsnd, null, true);
+
+            //    if (alarmSound != null)
+            //        alarmSound.pause = true;
+            //}
         } 
-        else if (timeState.currentAttemptTime + Time.fixedDeltaTime >= 3.5f)
+        else
         {
-            timeState.gameplayClock += (this.timeState.currentAttemptTime + Time.fixedDeltaTime) - 3.5f;
+            if (timeState.currentAttemptTime >= 3.5f)
+            {
+                timeState.gameplayClock += Time.deltaTime;
+            }
+            else if (timeState.currentAttemptTime + Time.deltaTime >= 3.5f)
+            {
+                timeState.gameplayClock += (this.timeState.currentAttemptTime + Time.deltaTime) - 3.5f;
+            }
         }
+
         if (finishTime != null)
         {
             timeState.gameplayClock = finishTime.Value.gameplayClock;
@@ -115,10 +146,39 @@ public class MarbleWorld4D : MonoBehaviour
         gemCounter.SetGemCount(collectedGems, gems.Length);
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
         UpdateTimer();
         UpdateGameState();
+        foreach (var powerUp in powerUps)
+            powerUp.UpdateMB(timeState);
+    }
+
+    private void FixedUpdate()
+    {
+        var ft = timeState;
+        ft.dt = Time.fixedDeltaTime;
+        marble.UpdateMB(ft);
+    }
+
+    public bool PickUpPowerup(Marble4D marble, PowerUp powerup)
+    {
+        if (powerup == null)
+            return false;
+        if (marble.heldPowerup != null && marble.heldPowerup.identifier == powerup.identifier)
+            return false;
+        marble.heldPowerup = powerup;
+        return true;
+    }
+
+    public void DeselectPowerup(Marble4D marble)
+    {
+        marble.heldPowerup = null;
+    }
+
+    public void AddBonusTime(float time)
+    {
+        bonusTime += time;
     }
 }
 

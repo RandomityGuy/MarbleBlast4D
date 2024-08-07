@@ -29,6 +29,7 @@ public class EditorMeshBuilder4D : EditorWindow {
     int revolveSegments;
     float revolveAngle;
     Vector3 revolveOffset = Vector3.zero;
+    Vector3 revolveAdd = Vector3.zero;
 
     // Flat
     float holeThickness;
@@ -94,11 +95,12 @@ public class EditorMeshBuilder4D : EditorWindow {
 
         revolveSegments = EditorGUILayout.IntSlider("Segments", revolveSegments, 1, 100);
         revolveOffset = EditorGUILayout.Vector3Field("Offset", revolveOffset);
+        revolveAdd = EditorGUILayout.Vector3Field("Add", revolveAdd);
         revolveAngle = EditorGUILayout.Slider("Angle", revolveAngle, 0.0f, 360.0f);
 
         if (GUILayout.Button("Revolve"))
         {
-            var res = GenerateMeshes4D.GenerateRevolve(selectedMesh, revolveSegments, revolveOffset, revolveAngle).mesh4D;
+            var res = GenerateMeshes4D.GenerateRevolveScrew(selectedMesh, revolveSegments, revolveOffset, revolveAdd, revolveAngle).mesh4D;
             SetMeshToSelection(res);
         }
         

@@ -25,7 +25,7 @@ public class GemItem : Trigger
         this.hidden = hidden;
     }
 
-    public override void OnCollide(Marble4D marble)
+    public override void OnCollide(Marble4D marble, TimeState t)
     {
         if (hidden) return;
         SetHidden(true);

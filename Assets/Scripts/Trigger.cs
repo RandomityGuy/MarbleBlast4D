@@ -7,7 +7,7 @@ using UnityEngine;
 
 public class Trigger : MBObject
 {
-    public virtual void OnCollide(Marble4D marble)
+    public virtual void OnCollide(Marble4D marble, TimeState t)
     {
 
     }
