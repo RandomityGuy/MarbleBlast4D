@@ -88,6 +88,10 @@ public class Marble4D : MBObject
 
     public Vector4 lastContactNormal;
 
+    public GameObject helicopterImage;
+    GameObject helicopterImageInstance;
+    float helicopterUseTime = -1e8f;
+
     bool isOob;
 
     [System.NonSerialized] public MarbleMode mode;
@@ -156,6 +160,8 @@ public class Marble4D : MBObject
         orientation.Normalize();
 
         obj4D.localRotation4D = orientation.ToMatrix();
+
+        UpdatePowerupImages(t);
     }
 
     void FindContacts(TimeState t)
@@ -252,7 +258,7 @@ public class Marble4D : MBObject
 
             bool isCentered = this._computeMoveForces(mv, omega, out BiVector3 aControl, out BiVector3 desiredOmega);
             this._velocityCancel(contacts, ref velocity, ref omega, isCentered, false);
-            Vector4 A = this._getExternalForces(mv, contacts);
+            Vector4 A = this._getExternalForces(t, mv, contacts);
             BiVector3 a;
             this._applyContactForces(timeStep, mv, contacts, isCentered, aControl, desiredOmega, ref velocity, ref omega, ref A, out a);
             velocity += A * timeStep;
@@ -466,13 +472,17 @@ public class Marble4D : MBObject
         }
     }
 
-    private Vector4 _getExternalForces(Move mv, List<CollisionInfo> contacts)
+    private Vector4 _getExternalForces(TimeState t, Move mv, List<CollisionInfo> contacts)
     {
         if (this.mode == MarbleMode.Finish)
             return this.velocity * -16.0f;
 
         Vector4 gWorkGravityDir = -currentUp;
         Vector4 A = gWorkGravityDir * this._gravity;
+        if (IsHelicopterEnabled(t))
+        {
+            A *= 0.25f;
+        }
         if (contacts.Count == 0 && mode != MarbleMode.Start)
         {
             Vector4 sideDir;
@@ -480,7 +490,7 @@ public class Marble4D : MBObject
             Vector4 upDir;
             Vector4 wDir;
             this._getMarbleAxis(out sideDir, out motionDir, out upDir, out wDir);
-            A += (sideDir * mv.mv.x + motionDir * mv.mv.y + wDir * mv.mv.z) * this._airAccel;
+            A += (sideDir * mv.mv.x + motionDir * mv.mv.y + wDir * mv.mv.z) * this._airAccel * (IsHelicopterEnabled(t) ? 2.0f : 1.0f);
         }
         return A;
     }
@@ -664,4 +674,44 @@ public class Marble4D : MBObject
         //sideDir.Normalize();
         //motionDir = Vector3.Cross(upDir, sideDir);
     }
+
+    void UpdatePowerupImages(TimeState t)
+    {
+        if (IsHelicopterEnabled(t))
+        {
+            if (helicopterImageInstance != null)
+            {
+                var ho4d = helicopterImageInstance.GetComponent<Object4D>();
+                helicopterImageInstance.gameObject.transform.position = Transform4D.XYZ(position) + new Vector3(0, 0.1f, 0);
+                ho4d.positionW = position.w;
+                var mat = camera.camMatrix;
+                
+                mat.SetColumn(1, currentUp);
+                Transform4D.MakeOrthoNormal(ref mat);
+                var rot = Transform4D.PlaneRotation(t.currentAttemptTime * 540.0f, 0, 2);
+                mat = mat * rot;
+                
+                ho4d.localRotation4D = mat;
+            }
+        }
+        else
+        {
+            if (helicopterImageInstance != null)
+            {
+                Destroy(helicopterImageInstance);
+                helicopterImageInstance = null;
+            }
+        }
+    }
+
+    public void EnableHelicopter(TimeState t)
+    {
+        this.helicopterUseTime = t.currentAttemptTime;
+        if (helicopterImageInstance == null)
+        {
+            helicopterImageInstance = Instantiate(helicopterImage);
+        }
+    }
+
+    public bool IsHelicopterEnabled(TimeState t) => t.currentAttemptTime - this.helicopterUseTime < 5f;
 }
