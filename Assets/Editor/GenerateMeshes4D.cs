@@ -44,17 +44,17 @@ public class GenerateMeshes4D : MonoBehaviour {
         Generate4DExtrude(LoadMesh3D("icosahedron.fbx"), 1.0f).Build("icosa_cylinder");
         Generate4DExtrude(LoadMesh3D("icosahedron.fbx"), 1.0f, null, false, false).Build("icosa_cylinder_uncapped");
         Generate4DPyramid(LoadMesh3D("icosahedron.fbx"), 1.0f, null, false).Build("icosa_pyramid_uncapped");
-        OFFParser.LoadOFF4D("Pentachoron").Build("5cell");
-        OFFParser.LoadOFF4D("Hexadecachoron").Build("16cell").GeoPoke().Build("128cell");
-        OFFParser.LoadOFF4D("Icositetrachoron").Build("24cell");
-        OFFParser.LoadOFF4D("TetrakisHexadecachoron", false).Build("64cell");
-        OFFParser.LoadOFF4D("NotchedEnneacontahexachoron", false).Build("N96cell");
-        OFFParser.LoadOFF4D("DisphenoidalEnneacontahexachoron", false).Build("D96cell");
-        OFFParser.LoadOFF4D("Hexacosichoron").Build("600cell").GeoPoke().Build("glome");
-        OFFParser.LoadOFF4D("Hexacosichoron").GeoPoke(true, true).Smoothen().Build("glome_hires");
-        OFFParser.LoadOFF4D("Hexacosichoron").Smoothen().Build("600cell_smooth");
-        OFFParser.LoadOFF4D("Hexacosichoron").Perturb(0.2f).Smoothen().Build("asteroid");
-        Color600Cell(OFFParser.LoadOFF4D("Hexacosichoron")).Build("600cell_colored");
+        OFFParser.LoadOFF4DInAssets("Pentachoron").Build("5cell");
+        OFFParser.LoadOFF4DInAssets("Hexadecachoron").Build("16cell").GeoPoke().Build("128cell");
+        OFFParser.LoadOFF4DInAssets("Icositetrachoron").Build("24cell");
+        OFFParser.LoadOFF4DInAssets("TetrakisHexadecachoron", false).Build("64cell");
+        OFFParser.LoadOFF4DInAssets("NotchedEnneacontahexachoron", false).Build("N96cell");
+        OFFParser.LoadOFF4DInAssets("DisphenoidalEnneacontahexachoron", false).Build("D96cell");
+        OFFParser.LoadOFF4DInAssets("Hexacosichoron").Build("600cell").GeoPoke().Build("glome");
+        OFFParser.LoadOFF4DInAssets("Hexacosichoron").GeoPoke(true, true).Smoothen().Build("glome_hires");
+        OFFParser.LoadOFF4DInAssets("Hexacosichoron").Smoothen().Build("600cell_smooth");
+        OFFParser.LoadOFF4DInAssets("Hexacosichoron").Perturb(0.2f).Smoothen().Build("asteroid");
+        Color600Cell(OFFParser.LoadOFF4DInAssets("Hexacosichoron")).Build("600cell_colored");
         MergeMeshes4D(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Modeling/Table.prefab")).Build("table");
         Debug.Log("Done!");
     }
@@ -907,6 +907,208 @@ public class GenerateMeshes4D : MonoBehaviour {
                     mesh4D.AddQuadShadow(b1, b2, d1, d2);
                     mesh4D.AddQuadShadow(d1, d2, c1, c2);
                     mesh4D.AddQuadShadow(c1, c2, a1, a2);
+                }
+            }
+            mesh4D.NextSubmesh();
+        }
+        return new Mesh4DBuilder(mesh4D);
+    }
+
+    public static Mesh4DBuilder Generate4DSphericalExtrude(Mesh mesh3D, float length, int segments, float maxAngle)
+    {
+        //Get the primitive mesh from a GameObject.
+        // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
+        Vector3[] verticies = mesh3D.vertices;
+
+        //Create a new mesh4D
+        Mesh4D mesh4D = new Mesh4D(mesh3D.subMeshCount);
+
+        //Scan through the 3D mesh
+        for (int s = 0; s < mesh3D.subMeshCount; ++s)
+        {
+            MeshTopology topology = mesh3D.GetTopology(s);
+            int[] indices = mesh3D.GetIndices(s);
+            Vector4 center = CenterOfMass(mesh3D, s);
+
+            for (int side = -1; side < 2; side += 2)
+            {
+                Vector4 extrude = new Vector4(0.0f, 0.0f, 0.0f, length * side);
+
+                for (int segment = 0; segment < segments; segment++)
+                {
+                    float angle = Mathf.Lerp(0, maxAngle * Mathf.Deg2Rad, (float)segment / segments);
+                    var ratio = Mathf.Cos(angle);
+                    var extrudeFrac = length * Mathf.Sin(angle);
+                    float nextAngle = Mathf.Lerp(0, maxAngle * Mathf.Deg2Rad, (segment + 1.0f) / segments);
+                    var nextRatio = Mathf.Cos(nextAngle);
+                    var nextExtrudeFrac = length * Mathf.Sin(nextAngle);
+                    if (topology == MeshTopology.Triangles)
+                    {
+                        Debug.Assert(indices.Length % 3 == 0);
+                        //Needed to correctly match parity in tetrahedron boundaries
+                        Dictionary<Tuple<Vector3, Vector3>, int> parityCheck = new();
+                        for (int i = 0; i < indices.Length; i += 3)
+                        {
+                            //Run the parity check
+                            Vector4 a1 = verticies[indices[i]];
+                            a1 = a1 * ratio + extrude * extrudeFrac;
+                            Vector4 b1 = verticies[indices[i + 1]];
+                            b1 = b1 * ratio + extrude * extrudeFrac;
+                            Vector4 c1 = verticies[indices[i + 2]];
+                            c1 = c1 * ratio + extrude * extrudeFrac;
+                            int parity = RunParityCheck(parityCheck, a1, b1, c1);
+
+                            Vector4 a2 = verticies[indices[i]];
+                            a2 = a2 * nextRatio + extrude * nextExtrudeFrac;
+                            Vector4 b2 = verticies[indices[i + 1]];
+                            b2 = b2 * nextRatio + extrude * nextExtrudeFrac;
+                            Vector4 c2 = verticies[indices[i + 2]];
+                            c2 = c2 * nextRatio + extrude * nextExtrudeFrac;
+
+                            if (side == -1)
+                            {
+                                // Swap the vertices
+                                (a1, a2) = (a2, a1);
+                                (b1, b2) = (b2, b1);
+                                (c1, c2) = (c2, c1);
+                            }
+
+                            AddHalfCellParity(mesh4D, a1, a2, b1, b2, c1, c2, parity);
+                            mesh4D.AddQuadShadow(a1, a2, b1, b2);
+                            mesh4D.AddQuadShadow(a1, a2, c1, c2);
+                            mesh4D.AddQuadShadow(b1, b2, c1, c2);
+                        }
+                    }
+                    else if (topology == MeshTopology.Quads)
+                    {
+                        Debug.Assert(indices.Length % 4 == 0);
+                        for (int i = 0; i < indices.Length; i += 4)
+                        {
+                            Vector4 a1 = verticies[indices[i]];
+                            Vector4 b1 = verticies[indices[i + 3]];
+                            Vector4 c1 = verticies[indices[i + 1]];
+                            Vector4 d1 = verticies[indices[i + 2]];
+                            a1 = a1 * ratio + extrude * extrudeFrac;
+                            b1 = b1 * ratio + extrude * extrudeFrac;
+                            c1 = c1 * ratio + extrude * extrudeFrac;
+                            d1 = d1 * ratio + extrude * extrudeFrac;
+
+                            Vector4 a2 = verticies[indices[i]];
+                            Vector4 b2 = verticies[indices[i + 3]];
+                            Vector4 c2 = verticies[indices[i + 1]];
+                            Vector4 d2 = verticies[indices[i + 2]];
+                            a2 = a2 * nextRatio + extrude * nextExtrudeFrac;
+                            b2 = b2 * nextRatio + extrude * nextExtrudeFrac;
+                            c2 = c2 * nextRatio + extrude * nextExtrudeFrac;
+                            d2 = d2 * nextRatio + extrude * nextExtrudeFrac;
+
+                            if (side == -1)
+                            {
+                                // Swap the vertices
+                                (a1, a2) = (a2, a1);
+                                (b1, b2) = (b2, b1);
+                                (c1, c2) = (c2, c1);
+                                (d1, d2) = (d2, d1);
+                            }
+
+                            mesh4D.AddCell(a1, a2, b1, b2, c1, c2, d1, d2);
+                            mesh4D.AddQuadShadow(a1, a2, b1, b2);
+                            mesh4D.AddQuadShadow(b1, b2, d1, d2);
+                            mesh4D.AddQuadShadow(d1, d2, c1, c2);
+                            mesh4D.AddQuadShadow(c1, c2, a1, a2);
+                        }
+                    }
+                }
+            }
+            mesh4D.NextSubmesh();
+        }
+
+        return new Mesh4DBuilder(mesh4D);
+    }
+
+    public static Mesh4DBuilder Generate4DPyramidSpherical(Mesh mesh3D, float length, int segments, float maxAngle)
+    {
+        //Get the primitive mesh from a GameObject.
+        // Mesh mesh3D = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Meshes3D/" + filepath);
+        Vector3[] verticies = mesh3D.vertices;
+
+        //Create a new mesh4D
+        Mesh4D mesh4D = new Mesh4D(mesh3D.subMeshCount);
+        Vector4 extrude = new Vector4(0.0f, 0.0f, 0.0f, length);
+
+        //Scan through the 3D mesh
+        for (int s = 0; s < mesh3D.subMeshCount; ++s)
+        {
+            MeshTopology topology = mesh3D.GetTopology(s);
+            int[] indices = mesh3D.GetIndices(s);
+            Vector4 center = CenterOfMass(mesh3D, s);
+
+            for (int segment = 0; segment < segments; segment++)
+            {
+                float angle = Mathf.Lerp(0, maxAngle * Mathf.Deg2Rad, (float)segment / segments);
+                var ratio = Mathf.Cos(angle);
+                var extrudeFrac = length * Mathf.Sin(angle);
+                float nextAngle = Mathf.Lerp(0, maxAngle * Mathf.Deg2Rad, (segment + 1.0f) / segments);
+                var nextRatio = Mathf.Cos(nextAngle);
+                var nextExtrudeFrac = length * Mathf.Sin(nextAngle);
+                if (topology == MeshTopology.Triangles)
+                {
+                    Debug.Assert(indices.Length % 3 == 0);
+                    //Needed to correctly match parity in tetrahedron boundaries
+                    Dictionary<Tuple<Vector3, Vector3>, int> parityCheck = new();
+                    for (int i = 0; i < indices.Length; i += 3)
+                    {
+                        //Run the parity check
+                        Vector4 a1 = verticies[indices[i]];
+                        a1 = a1 * ratio + extrude * extrudeFrac;
+                        Vector4 b1 = verticies[indices[i + 1]];
+                        b1 = b1 * ratio + extrude * extrudeFrac;
+                        Vector4 c1 = verticies[indices[i + 2]];
+                        c1 = c1 * ratio + extrude * extrudeFrac;
+                        int parity = RunParityCheck(parityCheck, a1, b1, c1);
+
+                        Vector4 a2 = verticies[indices[i]];
+                        a2 = a2 * nextRatio + extrude * nextExtrudeFrac;
+                        Vector4 b2 = verticies[indices[i + 1]];
+                        b2 = b2 * nextRatio + extrude * nextExtrudeFrac;
+                        Vector4 c2 = verticies[indices[i + 2]];
+                        c2 = c2 * nextRatio + extrude * nextExtrudeFrac;
+
+                        AddHalfCellParity(mesh4D, a1, a2, b1, b2, c1, c2, parity);
+                        mesh4D.AddQuadShadow(a1, a2, b1, b2);
+                        mesh4D.AddQuadShadow(a1, a2, c1, c2);
+                        mesh4D.AddQuadShadow(b1, b2, c1, c2);
+                    }
+                }
+                else if (topology == MeshTopology.Quads)
+                {
+                    Debug.Assert(indices.Length % 4 == 0);
+                    for (int i = 0; i < indices.Length; i += 4)
+                    {
+                        Vector4 a1 = verticies[indices[i]];
+                        Vector4 b1 = verticies[indices[i + 3]];
+                        Vector4 c1 = verticies[indices[i + 1]];
+                        Vector4 d1 = verticies[indices[i + 2]];
+                        a1 = a1 * ratio + extrude * extrudeFrac;
+                        b1 = b1 * ratio + extrude * extrudeFrac;
+                        c1 = c1 * ratio + extrude * extrudeFrac;
+                        d1 = d1 * ratio + extrude * extrudeFrac;
+
+                        Vector4 a2 = verticies[indices[i]];
+                        Vector4 b2 = verticies[indices[i + 3]];
+                        Vector4 c2 = verticies[indices[i + 1]];
+                        Vector4 d2 = verticies[indices[i + 2]];
+                        a2 = a2 * nextRatio + extrude * nextExtrudeFrac;
+                        b2 = b2 * nextRatio + extrude * nextExtrudeFrac;
+                        c2 = c2 * nextRatio + extrude * nextExtrudeFrac;
+                        d2 = d2 * nextRatio + extrude * nextExtrudeFrac;
+
+                        mesh4D.AddCell(a1, a2, b1, b2, c1, c2, d1, d2);
+                        mesh4D.AddQuadShadow(a1, a2, b1, b2);
+                        mesh4D.AddQuadShadow(b1, b2, d1, d2);
+                        mesh4D.AddQuadShadow(d1, d2, c1, c2);
+                        mesh4D.AddQuadShadow(c1, c2, a1, a2);
+                    }
                 }
             }
             mesh4D.NextSubmesh();

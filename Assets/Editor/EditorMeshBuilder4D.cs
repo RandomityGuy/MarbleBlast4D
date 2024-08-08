@@ -1,4 +1,6 @@
 ﻿#if UNITY_EDITOR
+using NUnit.Framework;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
@@ -8,6 +10,8 @@ using Unity.Collections;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEditor.UIElements;
+using UnityEditorInternal;
 using UnityEngine;
 
 public class EditorMeshBuilder4D : EditorWindow {
@@ -15,6 +19,12 @@ public class EditorMeshBuilder4D : EditorWindow {
     Mesh selectedMesh;
     MeshFilter selectedMeshFilter;
     GameObject selectedObject;
+
+    // Foldouts
+    bool extrudeFoldout = true;
+    bool revolveFoldout = true;
+    bool miscFoldout = true;
+    bool primitiveFoldout = true;
 
     // Extrude
     float extrudeLength;
@@ -35,13 +45,108 @@ public class EditorMeshBuilder4D : EditorWindow {
     float holeThickness;
     float holeHeight;
 
+    Vector2 listScroll;
+    ReorderableList li;
+
     [MenuItem("4D/Mesh Builder 4D")]
     public static void Init()
     {
         EditorWindow window = GetWindow(typeof(EditorMeshBuilder4D));
         window.Show();
     }
-    
+
+    private void OnEnable()
+    {
+        li = new ReorderableList(new List<EditorMesh4DOperator>(), typeof(EditorMesh4DOperator), true, true, true, true);
+        li.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) =>
+        {
+            var item = (EditorMesh4DOperator)li.list[index];
+            Rect r = new Rect(rect.x, rect.y, rect.width, 20);
+            item.Enabled = EditorGUI.Toggle(r, item.Enabled);
+            r.x += 20;
+            EditorGUI.LabelField(r, item.Title);
+            r.x -= 20;
+            r.y += 20;
+            item.Draw(r);
+        };
+        li.elementHeightCallback = (int i) =>
+        {
+            var item = (EditorMesh4DOperator)li.list[i];
+            return item.Height;
+        };
+        li.drawHeaderCallback = (Rect rect) => {
+            EditorGUI.LabelField(rect, "Post Process");
+        };
+        GenericMenu.MenuFunction2 addItem = (object t) =>
+        {
+            var obj = t as string;
+            switch (obj)
+            {
+                case "Smoothen":
+                    li.list.Add(new OperatorSmoothen4D());
+                    break;
+
+                case "Perturb":
+                    li.list.Add(new OperatorPerturb4D());
+                    break;
+
+                case "Wave":
+                    li.list.Add(new OperatorWave4D());
+                    break;
+
+                case "Twist":
+                    li.list.Add(new OperatorTwist4D());
+                    break;
+
+                case "Fluff":
+                    li.list.Add(new OperatorFluff4D());
+                    break;
+
+                case "Merge Vertices":
+                    li.list.Add(new OperatorMergeVerts4D());
+                    break;
+
+                case "Spike":
+                    li.list.Add(new OperatorSpike4D());
+                    break;
+
+                case "Geopoke":
+                    li.list.Add(new OperatorGeopoke4D());
+                    break;
+
+                case "Spherize":
+                    li.list.Add(new OperatorSpherize4D());
+                    break;
+            }
+        };
+
+        li.onAddDropdownCallback = (Rect rect, ReorderableList l) =>
+        {
+            var menu = new GenericMenu();
+            menu.AddItem(new GUIContent("Smoothen"), false, addItem, "Smoothen");
+            menu.AddItem(new GUIContent("Perturb"), false, addItem, "Perturb");
+            menu.AddItem(new GUIContent("Wave"), false, addItem, "Wave");
+            menu.AddItem(new GUIContent("Twist"), false, addItem, "Twist");
+            menu.AddItem(new GUIContent("Fluff"), false, addItem, "Fluff");
+            menu.AddItem(new GUIContent("Merge Vertices"), false, addItem, "Merge Vertices");
+            menu.AddItem(new GUIContent("Spike"), false, addItem, "Spike");
+            menu.AddItem(new GUIContent("Geopoke"), false, addItem, "Geopoke");
+            menu.AddItem(new GUIContent("Spherize"), false, addItem, "Spherize");
+            menu.ShowAsContext();
+        };
+    }
+
+    Mesh4DBuilder ApplyPostProcessing(Mesh4DBuilder m)
+    {
+        foreach (var op in li.list)
+        {
+            var item = (EditorMesh4DOperator)op;
+            if (item.Enabled)
+                item.Apply(m);
+        }
+        return m;
+    }
+
     void OnGUI()
     {
         EditorGUI.BeginDisabledGroup(true);
@@ -50,137 +155,170 @@ public class EditorMeshBuilder4D : EditorWindow {
 
         // Operations
 
-        EditorGUILayout.BeginFoldoutHeaderGroup(true, "Extrude");
-        
-        extrudeLength = EditorGUILayout.FloatField("Length", extrudeLength);
-        extrudeCapTop = EditorGUILayout.Toggle(new GUIContent("Cap Top"), extrudeCapTop);
-        extrudeCapBottom = EditorGUILayout.Toggle(new GUIContent("Cap Bottom"), extrudeCapBottom);
-        extrudeVertAO = EditorGUILayout.Toggle(new GUIContent("Vertex AO"), extrudeVertAO);
-        extrudeCentered = EditorGUILayout.Toggle(new GUIContent("Centered"), extrudeCentered);
-        extrudeTruncateRatio = EditorGUILayout.FloatField(new GUIContent("Truncate Ratio"), extrudeTruncateRatio);
-        extrudeHoleThickness = EditorGUILayout.FloatField(new GUIContent("Hole Thickness"), extrudeHoleThickness);
-        if (GUILayout.Button("Extrude"))
+        extrudeFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(extrudeFoldout, "Extrude");
+        if (extrudeFoldout)
         {
-            var res = GenerateMeshes4D.Generate4DExtrude(selectedMesh, extrudeLength, null, extrudeCapTop, extrudeCapBottom, extrudeVertAO, 0, extrudeCapTop, extrudeCapBottom).mesh4D;
-            SetMeshToSelection(res);
-        }
-        if (GUILayout.Button("Bumper Extrude"))
-        {
-            var res = GenerateMeshes4D.Generate4DBumperExtrude(selectedMesh, extrudeLength, extrudeTruncateRatio).mesh4D;
-            SetMeshToSelection(res);
-        }
-        if (GUILayout.Button("Extrude Flat"))
-        {
-            var res = GenerateMeshes4D.Generate4DExtrudeFlat(selectedMesh, extrudeLength).mesh4D;
-            SetMeshToSelection(res);
-        }
-        if (GUILayout.Button("Extrude Hole"))
-        {
-            var res = GenerateMeshes4D.Generate4DHoleExtrude(selectedMesh, extrudeHoleThickness, extrudeLength, extrudeCapTop, extrudeCapBottom).mesh4D;
-            SetMeshToSelection(res);
-        }
-        if (GUILayout.Button("Extrude Pyramid"))
-        {
-            var res = GenerateMeshes4D.Generate4DPyramid(selectedMesh, extrudeLength).mesh4D;
-            SetMeshToSelection(res);
-        }
-        if (GUILayout.Button("Extrude Truncated Pyramid"))
-        {
-            var res = GenerateMeshes4D.Generate4DTruncatedPyramid(selectedMesh, extrudeLength, extrudeTruncateRatio, null, extrudeCapBottom, extrudeCapTop, extrudeVertAO, 0, extrudeCentered, extrudeCapBottom, extrudeCapTop).mesh4D;
-            SetMeshToSelection(res);
+
+            extrudeLength = EditorGUILayout.FloatField("Length", extrudeLength);
+            extrudeCapTop = EditorGUILayout.Toggle(new GUIContent("Cap Top"), extrudeCapTop);
+            extrudeCapBottom = EditorGUILayout.Toggle(new GUIContent("Cap Bottom"), extrudeCapBottom);
+            extrudeVertAO = EditorGUILayout.Toggle(new GUIContent("Vertex AO"), extrudeVertAO);
+            extrudeCentered = EditorGUILayout.Toggle(new GUIContent("Centered"), extrudeCentered);
+            extrudeTruncateRatio = EditorGUILayout.FloatField(new GUIContent("Truncate Ratio"), extrudeTruncateRatio);
+            extrudeHoleThickness = EditorGUILayout.FloatField(new GUIContent("Hole Thickness"), extrudeHoleThickness);
+            if (GUILayout.Button("Extrude"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DExtrude(selectedMesh, extrudeLength, null, extrudeCapTop, extrudeCapBottom, extrudeVertAO, 0, extrudeCapTop, extrudeCapBottom)).mesh4D;
+                SetMeshToSelection(res);
+            }
+            if (GUILayout.Button("Bumper Extrude"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DBumperExtrude(selectedMesh, extrudeLength, extrudeTruncateRatio)).mesh4D;
+                SetMeshToSelection(res);
+            }
+            if (GUILayout.Button("Extrude Flat"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DExtrudeFlat(selectedMesh, extrudeLength)).mesh4D;
+                SetMeshToSelection(res);
+            }
+            if (GUILayout.Button("Extrude Hole"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DHoleExtrude(selectedMesh, extrudeHoleThickness, extrudeLength, extrudeCapTop, extrudeCapBottom)).mesh4D;
+                SetMeshToSelection(res);
+            }
+            if (GUILayout.Button("Extrude Pyramid"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DPyramid(selectedMesh, extrudeLength)).mesh4D;
+                SetMeshToSelection(res);
+            }
+            if (GUILayout.Button("Extrude Truncated Pyramid"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DTruncatedPyramid(selectedMesh, extrudeLength, extrudeTruncateRatio, null, extrudeCapBottom, extrudeCapTop, extrudeVertAO, 0, extrudeCentered, extrudeCapBottom, extrudeCapTop)).mesh4D;
+                SetMeshToSelection(res);
+            }
         }
         EditorGUILayout.EndFoldoutHeaderGroup();
 
-        EditorGUILayout.BeginFoldoutHeaderGroup(true, "Revolve");
-
-        revolveSegments = EditorGUILayout.IntSlider("Segments", revolveSegments, 1, 100);
-        revolveOffset = EditorGUILayout.Vector3Field("Offset", revolveOffset);
-        revolveAdd = EditorGUILayout.Vector3Field("Add", revolveAdd);
-        revolveAngle = EditorGUILayout.Slider("Angle", revolveAngle, 0.0f, 360.0f);
-
-        if (GUILayout.Button("Revolve"))
+        revolveFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(revolveFoldout, "Revolve");
+        if (revolveFoldout)
         {
-            var res = GenerateMeshes4D.GenerateRevolveScrew(selectedMesh, revolveSegments, revolveOffset, revolveAdd, revolveAngle).mesh4D;
-            SetMeshToSelection(res);
+            revolveSegments = EditorGUILayout.IntSlider("Segments", revolveSegments, 1, 100);
+            revolveOffset = EditorGUILayout.Vector3Field("Offset", revolveOffset);
+            revolveAdd = EditorGUILayout.Vector3Field("Add", revolveAdd);
+            revolveAngle = EditorGUILayout.Slider("Angle", revolveAngle, 0.0f, 360.0f);
+
+            if (GUILayout.Button("Revolve"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.GenerateRevolveScrew(selectedMesh, revolveSegments, revolveOffset, revolveAdd, revolveAngle)).mesh4D;
+                SetMeshToSelection(res);
+            }
+
+            if (GUILayout.Button("Extrude Spherical Pyramid"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DPyramidSpherical(selectedMesh, extrudeLength, revolveSegments, revolveAngle)).mesh4D;
+                SetMeshToSelection(res);
+            }
+
+            if (GUILayout.Button("Extrude Spherical"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DSphericalExtrude(selectedMesh, extrudeLength, revolveSegments, revolveAngle)).mesh4D;
+                SetMeshToSelection(res);
+            }
         }
-        
         EditorGUILayout.EndFoldoutHeaderGroup();
 
         // Flat Operations
 
-        EditorGUILayout.BeginFoldoutHeaderGroup(true, "Misc Operations");
-        if (GUILayout.Button("Generate Flat"))
+        miscFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(miscFoldout, "Misc Operations");
+        if (miscFoldout)
         {
-            var res = GenerateMeshes4D.Generate4DFlat(selectedMesh).mesh4D;
-            SetMeshToSelection(res);
-        }
-        holeThickness = EditorGUILayout.FloatField("Hole Thickness", holeThickness);
-        holeHeight = EditorGUILayout.FloatField("Hole Height", holeHeight);
-        if (GUILayout.Button("Generate Hole Flat"))
-        {
-            var res = GenerateMeshes4D.Generate4DHoleFlat(selectedMesh, holeThickness, holeHeight).mesh4D;
-            SetMeshToSelection(res);
-        }
-        if (GUILayout.Button("Merge Selected"))
-        {
-            MergeMeshes4D(Selection.gameObjects.Where(x => x.GetComponent<Object4D>() != null).Select(x => x.GetComponent<Object4D>()).ToArray());
-        }
-        if (GUILayout.Button("Save Mesh"))
-        {
-            var meshFileName = EditorUtility.SaveFilePanel("Save Mesh as", "Assets/Meshes4D", "", "mesh");
-            if (meshFileName != "" && meshFileName != null)
+            if (GUILayout.Button("Generate Flat"))
             {
-                meshFileName = Path.GetRelativePath(".", meshFileName);
-                var mf = Selection.activeGameObject.GetComponent<MeshFilter>();
-                var sf = Selection.activeGameObject.GetComponent<ShadowFilter>();
+                var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DFlat(selectedMesh)).mesh4D;
+                SetMeshToSelection(res);
+            }
+            holeThickness = EditorGUILayout.FloatField("Hole Thickness", holeThickness);
+            holeHeight = EditorGUILayout.FloatField("Hole Height", holeHeight);
+            if (GUILayout.Button("Generate Hole Flat"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DHoleFlat(selectedMesh, holeThickness, holeHeight)).mesh4D;
+                SetMeshToSelection(res);
+            }
+            if (GUILayout.Button("Merge Selected"))
+            {
+                MergeMeshes4D(Selection.gameObjects.Where(x => x.GetComponent<Object4D>() != null).Select(x => x.GetComponent<Object4D>()).ToArray());
+            }
+            if (GUILayout.Button("Save Mesh"))
+            {
+                var meshFileName = EditorUtility.SaveFilePanel("Save Mesh as", "Assets/Meshes4D", "", "mesh");
+                if (meshFileName != "" && meshFileName != null)
+                {
+                    meshFileName = Path.GetRelativePath(".", meshFileName);
+                    var mf = Selection.activeGameObject.GetComponent<MeshFilter>();
+                    var sf = Selection.activeGameObject.GetComponent<ShadowFilter>();
 
-                Mesh tempMesh = (Mesh)UnityEngine.Object.Instantiate(mf.mesh);
-                Mesh tempShadowMesh = (Mesh)UnityEngine.Object.Instantiate(sf.shadowMesh);
-                Mesh tempWireMesh = (Mesh)UnityEngine.Object.Instantiate(sf.wireMesh);
+                    Mesh tempMesh = (Mesh)UnityEngine.Object.Instantiate(mf.mesh);
+                    Mesh tempShadowMesh = (Mesh)UnityEngine.Object.Instantiate(sf.shadowMesh);
+                    Mesh tempWireMesh = (Mesh)UnityEngine.Object.Instantiate(sf.wireMesh);
 
 
-                AssetDatabase.CreateAsset(tempMesh, meshFileName);
-                AssetDatabase.CreateAsset(tempShadowMesh, meshFileName.Replace(".mesh", "_s.mesh"));
-                AssetDatabase.CreateAsset(tempWireMesh, meshFileName.Replace(".mesh", "_w.mesh"));
+                    AssetDatabase.CreateAsset(tempMesh, meshFileName);
+                    AssetDatabase.CreateAsset(tempShadowMesh, meshFileName.Replace(".mesh", "_s.mesh"));
+                    AssetDatabase.CreateAsset(tempWireMesh, meshFileName.Replace(".mesh", "_w.mesh"));
 
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
-                AssetDatabase.ImportAsset(meshFileName, ImportAssetOptions.ForceUpdate);
+                    AssetDatabase.SaveAssets();
+                    AssetDatabase.Refresh();
+                    AssetDatabase.ImportAsset(meshFileName, ImportAssetOptions.ForceUpdate);
+                }
+            }
+            if (GUILayout.Button("Load OFF"))
+            {
+                var meshFileName = EditorUtility.OpenFilePanel("Load OFF", "Assets/Editor/OFF", "off");
+                if (meshFileName != "" && meshFileName != null)
+                {
+                    var res = ApplyPostProcessing(OFFParser.LoadOFF4D(meshFileName)).mesh4D;
+                    CreateObject4D(res);
+                }
             }
         }
         EditorGUILayout.EndFoldoutHeaderGroup();
 
         //// 4D Meshbuilder operations
         //EditorGUILayout.BeginFoldoutHeaderGroup(true, "4D Operations");
-        
+
         //EditorGUILayout.EndFoldoutHeaderGroup();
 
         // Primitives
-        EditorGUILayout.BeginFoldoutHeaderGroup(true, "Primitives");
-        if (GUILayout.Button("Flat Cube"))
+        primitiveFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(primitiveFoldout, "Primitives");
+        if (primitiveFoldout)
         {
-            var res = GenerateMeshes4D.GenerateFlatCube().mesh4D;
-            CreateObject4D(res);
+            if (GUILayout.Button("Flat Cube"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.GenerateFlatCube()).mesh4D;
+                CreateObject4D(res);
+            }
+            if (GUILayout.Button("Flat Tetrahedron"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.GenerateFlatTetrahedron()).mesh4D;
+                CreateObject4D(res);
+            }
+            if (GUILayout.Button("Hypercube"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.GenerateHyperCube()).mesh4D;
+                CreateObject4D(res);
+            }
+            if (GUILayout.Button("Ramp Prism"))
+            {
+                var res = ApplyPostProcessing(GenerateMeshes4D.GenerateRampPrism()).mesh4D;
+                CreateObject4D(res);
+            }
         }
-        if (GUILayout.Button("Flat Tetrahedron"))
-        {
-            var res = GenerateMeshes4D.GenerateFlatTetrahedron().mesh4D;
-            CreateObject4D(res);
-        }
-        if (GUILayout.Button("Hypercube"))
-        {
-            var res = GenerateMeshes4D.GenerateHyperCube().mesh4D;
-            CreateObject4D(res);
-        }
-        if (GUILayout.Button("Ramp Prism"))
-        {
-            var res = GenerateMeshes4D.GenerateRampPrism().mesh4D;
-            CreateObject4D(res);
-        }
+        
         EditorGUILayout.EndFoldoutHeaderGroup();
 
-
-
+        listScroll = EditorGUILayout.BeginScrollView(listScroll);
+        li.DoLayoutList();
+        EditorGUILayout.EndScrollView();
         //sliceW = EditorGUILayout.FloatField(EditorVolume.isVolume ? "Y" : "W", sliceW);
         //sliceV = EditorGUILayout.FloatField("V", sliceV);
         //is5D = EditorGUILayout.Toggle(new GUIContent("Use 5D"), is5D);
@@ -250,7 +388,7 @@ public class EditorMeshBuilder4D : EditorWindow {
         mr.material = AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/Default.mat");
     }
 
-    public static void MergeMeshes4D(Object4D[] objs4D)
+    public void MergeMeshes4D(Object4D[] objs4D)
     {
         //Get the primitive mesh from a GameObject.
         // Debug.Log("Generating " + name + "...");
@@ -354,6 +492,8 @@ public class EditorMeshBuilder4D : EditorWindow {
         var mesh3dWire = new Mesh();
 
         mb.MergeVerts(0.001f);
+
+        ApplyPostProcessing(mb);
 
         mb.mesh4D.GenerateMesh(mesh3d);
         mb.mesh4D.GenerateShadowMesh(mesh3dShadow);

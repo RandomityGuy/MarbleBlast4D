@@ -101,9 +101,14 @@ public class OFFParser {
         writer.Close();
     }
 
+    public static Mesh4DBuilder LoadOFF4DInAssets(string fname, bool normalize = true)
+    {
+        return LoadOFF4D("Assets/Editor/OFF/" + fname + ".off", normalize);
+    }
+
     public static Mesh4DBuilder LoadOFF4D(string fname, bool normalize=true) {
         //Read contents of file
-        StreamReader reader = new StreamReader("Assets/Editor/OFF/" + fname + ".off");
+        StreamReader reader = new StreamReader(fname);
         string fileContents = reader.ReadToEnd();
         string[] fileLines = fileContents.Replace("\r", "").Split('\n');
         reader.Close();
