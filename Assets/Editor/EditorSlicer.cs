@@ -19,9 +19,37 @@ public class EditorSlicer : EditorWindow {
     }
 
     void OnGUI() {
-        sliceW = EditorGUILayout.FloatField(EditorVolume.isVolume ? "Y" : "W", sliceW);
+        var currentWAxis = "W";
+        if (EditorVolume.isVolume)
+            currentWAxis = "Y";
+        if (EditorVolume.isVolume5D && !is5D)
+            currentWAxis = "X";
+        sliceW = EditorGUILayout.FloatField(currentWAxis, sliceW);
         sliceV = EditorGUILayout.FloatField("V", sliceV);
         is5D = EditorGUILayout.Toggle(new GUIContent("Use 5D"), is5D);
+        if (GUILayout.Button("Slice To Selection"))
+        {
+            var sel = Selection.activeGameObject;
+            if (sel != null)
+            {
+                var o4d = sel.gameObject.GetComponent<Object4D>();
+                if (o4d != null)
+                {
+                    if (EditorVolume.isVolume)
+                    {
+                        sliceW = o4d.localPosition4D.y;
+                    }
+                    else if (EditorVolume.isVolume5D && !is5D)
+                    {
+                        sliceW = o4d.localPosition4D.x;
+                    }
+                    else
+                    {
+                        sliceW = o4d.localPosition4D.w;
+                    }
+                }
+            }
+        }
     }
 
     void OnInspectorUpdate() {
