@@ -173,32 +173,32 @@ public class EditorMeshBuilder4D : EditorWindow {
             if (GUILayout.Button("Extrude"))
             {
                 var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DExtrude(selectedMesh, extrudeLength, null, extrudeCapTop, extrudeCapBottom, extrudeVertAO, 0, extrudeCapTop, extrudeCapBottom)).mesh4D;
-                SetMeshToSelection(res);
+                CreateObject4D(res);
             }
             if (GUILayout.Button("Bumper Extrude"))
             {
                 var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DBumperExtrude(selectedMesh, extrudeLength, extrudeTruncateRatio)).mesh4D;
-                SetMeshToSelection(res);
+                CreateObject4D(res);
             }
             if (GUILayout.Button("Extrude Flat"))
             {
                 var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DExtrudeFlat(selectedMesh, extrudeLength)).mesh4D;
-                SetMeshToSelection(res);
+                CreateObject4D(res);
             }
             if (GUILayout.Button("Extrude Hole"))
             {
                 var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DHoleExtrude(selectedMesh, extrudeHoleThickness, extrudeLength, extrudeCapTop, extrudeCapBottom)).mesh4D;
-                SetMeshToSelection(res);
+                CreateObject4D(res);
             }
             if (GUILayout.Button("Extrude Pyramid"))
             {
                 var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DPyramid(selectedMesh, extrudeLength)).mesh4D;
-                SetMeshToSelection(res);
+                CreateObject4D(res);
             }
             if (GUILayout.Button("Extrude Truncated Pyramid"))
             {
                 var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DTruncatedPyramid(selectedMesh, extrudeLength, extrudeTruncateRatio, null, extrudeCapBottom, extrudeCapTop, extrudeVertAO, 0, extrudeCentered, extrudeCapBottom, extrudeCapTop)).mesh4D;
-                SetMeshToSelection(res);
+                CreateObject4D(res);
             }
         }
         EditorGUILayout.EndFoldoutHeaderGroup();
@@ -214,19 +214,19 @@ public class EditorMeshBuilder4D : EditorWindow {
             if (GUILayout.Button("Revolve"))
             {
                 var res = ApplyPostProcessing(GenerateMeshes4D.GenerateRevolveScrew(selectedMesh, revolveSegments, revolveOffset, revolveAdd, revolveAngle)).mesh4D;
-                SetMeshToSelection(res);
+                CreateObject4D(res);
             }
 
             if (GUILayout.Button("Extrude Spherical Pyramid"))
             {
                 var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DPyramidSpherical(selectedMesh, extrudeLength, revolveSegments, revolveAngle)).mesh4D;
-                SetMeshToSelection(res);
+                CreateObject4D(res);
             }
 
             if (GUILayout.Button("Extrude Spherical"))
             {
                 var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DSphericalExtrude(selectedMesh, extrudeLength, revolveSegments, revolveAngle)).mesh4D;
-                SetMeshToSelection(res);
+                CreateObject4D(res);
             }
         }
         EditorGUILayout.EndFoldoutHeaderGroup();
@@ -239,14 +239,14 @@ public class EditorMeshBuilder4D : EditorWindow {
             if (GUILayout.Button("Generate Flat"))
             {
                 var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DFlat(selectedMesh)).mesh4D;
-                SetMeshToSelection(res);
+                CreateObject4D(res);
             }
             holeThickness = EditorGUILayout.FloatField("Hole Thickness", holeThickness);
             holeHeight = EditorGUILayout.FloatField("Hole Height", holeHeight);
             if (GUILayout.Button("Generate Hole Flat"))
             {
                 var res = ApplyPostProcessing(GenerateMeshes4D.Generate4DHoleFlat(selectedMesh, holeThickness, holeHeight)).mesh4D;
-                SetMeshToSelection(res);
+                CreateObject4D(res);
             }
             if (GUILayout.Button("Merge Selected"))
             {
@@ -346,7 +346,26 @@ public class EditorMeshBuilder4D : EditorWindow {
         obj.AddComponent<MeshRenderer>();
         obj.AddComponent<ShadowFilter>();
         obj.AddComponent<Object4D>();
-        
+
+        var screenRay = SceneView.lastActiveSceneView.camera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 1f));
+        var intersectionWithPlane = new Plane(new Vector3(0, 1, 0), 0);
+        intersectionWithPlane.Raycast(screenRay, out float distance);
+        var pos = screenRay.GetPoint(distance);
+
+        var o4d = obj.GetComponent<Object4D>();
+        if (EditorVolume.isVolume)
+        {
+            o4d.localPosition4D = new Vector4(pos.x, EditorSlicer.sliceW, pos.z, pos.y);
+        }
+        else if (EditorVolume.isVolume5D)
+        {
+            o4d.localPosition4D = new Vector4(EditorSlicer.sliceW, pos.y, pos.z, pos.x);
+        }
+        else
+        {
+            o4d.localPosition4D = new Vector4(pos.x, pos.y, pos.z, EditorSlicer.sliceW);
+        }
+
 
         var mesh3d = new Mesh();
         var mesh3dShadow = new Mesh();

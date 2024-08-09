@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEditor;
+using UnityEditor.Rendering;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
@@ -1219,6 +1220,24 @@ public class GeneratePieces4D : EditorWindow
         obj.AddComponent<ShadowFilter>();
         obj.AddComponent<Object4D>();
 
+        var screenRay = SceneView.lastActiveSceneView.camera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 1f));
+        var intersectionWithPlane = new Plane(new Vector3(0, 1, 0), 0);
+        intersectionWithPlane.Raycast(screenRay, out float distance);
+        var pos = screenRay.GetPoint(distance);
+
+        var o4d = obj.GetComponent<Object4D>();
+        if (EditorVolume.isVolume)
+        {
+            o4d.localPosition4D = new Vector4(pos.x, EditorSlicer.sliceW, pos.z, pos.y);
+        }
+        else if (EditorVolume.isVolume5D)
+        {
+            o4d.localPosition4D = new Vector4(EditorSlicer.sliceW, pos.y, pos.z, pos.x);
+        }
+        else
+        {
+            o4d.localPosition4D = new Vector4(pos.x, pos.y, pos.z, EditorSlicer.sliceW);
+        }
 
         var mesh3d = new Mesh();
         var mesh3dShadow = new Mesh();
@@ -1234,6 +1253,7 @@ public class GeneratePieces4D : EditorWindow
         var sf = obj.GetComponent<ShadowFilter>();
         sf.shadowMesh = mesh3dShadow;
         sf.wireMesh = mesh3dWire;
+
 
         return obj;
     }
