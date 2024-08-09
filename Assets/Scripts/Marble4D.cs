@@ -152,7 +152,6 @@ public class Marble4D : MBObject
         mv.powerup = false;
 
         AdvancePhysics(mv, t);
-        position += velocity * t.dt;
 
         var deltaOmega = omega * t.dt / 2;
 
@@ -189,7 +188,7 @@ public class Marble4D : MBObject
                                 coll.restitution = 1f;
                                 coll.friction = 1;
                                 coll.velocity = default(Vector4);
-                                coll.point = position + hit.displacement;
+                                coll.point = position - hit.displacement;
                                 coll.penetration = 0;
                                 contacts.Add(coll);
                             }
@@ -243,6 +242,41 @@ public class Marble4D : MBObject
         //}
     }
 
+    Vector4 NudgeToContacts(Vector4 velocity, Vector4 position)
+    {
+        var it = 0;
+        var prevResolved = 0;
+        do
+        {
+            var resolved = 0;
+            foreach (var contact in contacts)
+            {
+                // Check if we are on wrong side of the triangle
+                if (Vector4.Dot(contact.normal, position) - Vector4.Dot(contact.normal, contact.point) < 0)
+                {
+                    continue;
+                }
+
+                var planeD = -Vector4.Dot(contact.normal, contact.point);
+
+                var t = Vector4.Dot(contact.point - position, contact.normal) / contact.normal.sqrMagnitude;
+                var intersect = position + t * contact.normal;
+
+                var planeDistance = (intersect - position).magnitude;
+                if (planeDistance < _radius - 0.0005f)
+                {
+                    position += contact.normal * (_radius - 0.0005f - planeDistance);
+                    resolved += 1;
+                }
+            }
+            if (resolved == 0 && prevResolved == 0)
+                break;
+            prevResolved = resolved;
+            it++;
+        } while (it < 10);
+        return position;
+    }
+
     void AdvancePhysics(Move mv, TimeState t)
     {
         var dt = t.dt;
@@ -273,6 +307,32 @@ public class Marble4D : MBObject
             }
 
             this._velocityCancel(contacts, ref velocity, ref omega, isCentered, true);
+
+            var expectedPos = position + timeStep * velocity;
+
+            var newPos = NudgeToContacts(velocity, expectedPos);
+            if (velocity.sqrMagnitude > 1e-8f)
+            {
+                var posDiff = newPos - expectedPos;
+                if (posDiff.sqrMagnitude > 1e-8)
+                {
+                    var velDiffProj = this.velocity * Vector4.Dot(posDiff, this.velocity) / (this.velocity.sqrMagnitude);
+                    var expectedProjPos = expectedPos + velDiffProj;
+                    var updatedTimestep = (expectedProjPos - position).magnitude / velocity.magnitude;
+
+                    var tDiff = updatedTimestep - timeStep;
+                    if (tDiff > 0)
+                    {
+                        velocity -= A * tDiff;
+                        omega -= a * tDiff;
+                        timeStep = updatedTimestep;
+                    }
+                }
+            }
+
+            position = newPos;
+
+
             this._totalTime += timeStep;
             if (contacts.Count != 0)
             {

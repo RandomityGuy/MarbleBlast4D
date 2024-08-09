@@ -106,7 +106,6 @@ public abstract class Collider4D : MonoBehaviour {
         float dist = hit.displacement.magnitude;
         if (dist < radius && dist > 0.0f) {
             hit.floorNormal = hit.displacement * gravityStick;
-            hit.displacement *= (radius - dist) / dist;
             hit.collider = this;
             return true;
         } else {
