@@ -25,6 +25,7 @@ public class EditorMeshBuilder4D : EditorWindow {
     bool revolveFoldout = true;
     bool miscFoldout = true;
     bool primitiveFoldout = true;
+    bool postProcessFoldout = true;
 
     // Extrude
     float extrudeLength;
@@ -45,6 +46,7 @@ public class EditorMeshBuilder4D : EditorWindow {
     float holeThickness;
     float holeHeight;
 
+    Vector2 globalScroll;
     Vector2 listScroll;
     ReorderableList li;
 
@@ -52,6 +54,7 @@ public class EditorMeshBuilder4D : EditorWindow {
     public static void Init()
     {
         EditorWindow window = GetWindow(typeof(EditorMeshBuilder4D));
+        window.title = "Mesh Builder 4D";
         window.Show();
     }
 
@@ -75,7 +78,7 @@ public class EditorMeshBuilder4D : EditorWindow {
             return item.Height;
         };
         li.drawHeaderCallback = (Rect rect) => {
-            EditorGUI.LabelField(rect, "Post Process");
+            EditorGUI.LabelField(rect, "Operators");
         };
         GenericMenu.MenuFunction2 addItem = (object t) =>
         {
@@ -149,6 +152,7 @@ public class EditorMeshBuilder4D : EditorWindow {
 
     void OnGUI()
     {
+        globalScroll = EditorGUILayout.BeginScrollView(globalScroll);
         EditorGUI.BeginDisabledGroup(true);
         EditorGUILayout.ObjectField("Selection", selectedMesh, typeof(Mesh));
         EditorGUI.EndDisabledGroup();
@@ -315,9 +319,14 @@ public class EditorMeshBuilder4D : EditorWindow {
         }
         
         EditorGUILayout.EndFoldoutHeaderGroup();
-
-        listScroll = EditorGUILayout.BeginScrollView(listScroll);
-        li.DoLayoutList();
+        postProcessFoldout = EditorGUILayout.BeginFoldoutHeaderGroup(postProcessFoldout, "Post Processing");
+        if (postProcessFoldout)
+        {
+            listScroll = EditorGUILayout.BeginScrollView(listScroll);
+            li.DoLayoutList();
+            EditorGUILayout.EndFoldoutHeaderGroup();
+            EditorGUILayout.EndScrollView();
+        }
         EditorGUILayout.EndScrollView();
         //sliceW = EditorGUILayout.FloatField(EditorVolume.isVolume ? "Y" : "W", sliceW);
         //sliceV = EditorGUILayout.FloatField("V", sliceV);
