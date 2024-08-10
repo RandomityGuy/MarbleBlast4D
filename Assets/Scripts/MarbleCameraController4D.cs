@@ -35,6 +35,8 @@ public class MarbleCameraController4D : BasicStaticCamera4D
     Vector4 currentOrientationVec = Vector3.up;
     Vector4 newOrientationVec = Vector3.up;
 
+    [System.NonSerialized] public Matrix4x4 nonVCameraMatrix;
+
     Vector4 gravityDirection = (Vector4)Vector3.up;
     protected Matrix4x4 gravityMatrix = Matrix4x4.identity;
     protected bool fastGravity = false;
@@ -402,6 +404,8 @@ public class MarbleCameraController4D : BasicStaticCamera4D
     {
         //Up-Forward
         Matrix4x4 mainRot = Transform4D.Slerp(Transform4D.PlaneRotation(yz, 1, 2), Transform4D.PlaneRotation(90.0f, 1, 3), volumeSmooth);
+
+        nonVCameraMatrix = gravityMatrix * Transform4D.SkipY(m1Rot);
 
         //Combine with secondary rotation
         return gravityMatrix * Transform4D.SkipY(m1Rot) * mainRot;

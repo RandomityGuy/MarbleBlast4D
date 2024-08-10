@@ -703,14 +703,16 @@ public class Marble4D : MBObject
 
         sideDir = new Vector4(1, 0, 0, 0);
         motionDir = new Vector4(0, 0, 1, 0);
-        wDir = new Vector4(0, 0, 0, 1);
+        wDir = new Vector4(0, 0, 0, -1);
 
-        sideDir = camera.camMatrix * sideDir;
-        motionDir = camera.camMatrix * motionDir;
+        
+        sideDir = camera.nonVCameraMatrix * sideDir;
+        motionDir = camera.nonVCameraMatrix * motionDir;
         if (camera.volumeMode)
         {
-            upDir = camera.camMatrix * wDir;
-            wDir = camera.camMatrix * upDir;
+            upDir = camera.nonVCameraMatrix * upDir;
+            wDir = camera.nonVCameraMatrix * wDir;
+            // (wDir, upDir) = (upDir, wDir);
         }
         else
         {
@@ -721,9 +723,8 @@ public class Marble4D : MBObject
             sideDir.Normalize();
             motionDir.Normalize();
 
-            upDir = camera.camMatrix * upDir;
-            wDir = camera.camMatrix * wDir;
-            wDir *= -1;
+            upDir = camera.nonVCameraMatrix * upDir;
+            wDir = camera.nonVCameraMatrix * wDir;
         }
         //Matrix camMat = Matrix.Identity;
         //if (this._cameraX != null && this._cameraY != null)
