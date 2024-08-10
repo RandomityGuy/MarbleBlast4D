@@ -21,43 +21,64 @@ Shader "Custom/MarbleND" {
     
       CGPROGRAM
       #pragma shader_feature LOCAL_UV
+      #include "noise.cginc"
       #define PROC_TEXTURE
       #define USE_DITHER
-      #define hash(p) frac(sin(dot(p,float3(127.1,311.7, 74.7)))*43758.5453123)
-
-      float noise(float3 p)
-      {
-          float3 i = floor(p);
-          float3 f = frac(p);
-          f = f * f * (3. - 2. * f); // smoothstep
-      
-          float v = lerp(lerp(lerp(hash(i+float3(0.0,0.0,0.0)), hash(i+float3(1.0,0.0,0.0)), f.x),
-                             lerp(hash(i+float3(0.0,1.0,0.0)), hash(i+float3(1.0,1.0,0.0)), f.x), f.y),
-                        lerp(lerp(hash(i+float3(0.0,0.0,1.0)), hash(i+float3(1.0,0.0,1.0)), f.x),
-                             lerp(hash(i+float3(0.0,1.0,1.0)), hash(i+float3(1.0,1.0,1.0)), f.x), f.y), f.z);
-          return v;
-      }
-
-       #define rot(a) float2x2(cos(a),-sin(a),sin(a),cos(a))
-       
-       float fbm(float3 p)
-       {
-           float v = 0., a = .5;
-           float2x2 R = rot(.37);
-       
-        for (int i = 0; i < 9; i++, p *= 2., a /= 2.)
+      #define LOCAL_UV
+   
+        float fBm(float4 p)
         {
-            p.xy = mul(p.xy, R);
-            p.yz = mul(p.yz, R);
+            float sum = 0.0;
+            float amplitude = 1.0;
+            for (int i = 0; i < 2; i++)
+            {
+                sum += amplitude * snoise(p);
+                amplitude *= 0.5;
+                p *= 2.0;
+            }
+            return sum;
         }
-               v += a * noise(p);
-       
-           return v;
-       }
+
+        float3 hsv2rgb(float3 c)
+        {
+            float3 rgb = clamp(abs(fmod(c.x * 6.0 + float3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+
+            return c.z * lerp(float3(1.0, 1.0, 1.0), rgb, c.y);
+        }
+
+        static const float4x4 rot = float4x4(
+          0.36, 0.48, -0.8, 0.5,
+          -0.8, 0.6, 0.0, -0.5,
+          0.48, 0.64, 0.6, 0.0,
+          0.0, 0.0, 0.0, 0.0);
+
+        float3 getColor(float4 pos)
+        {
+            float4 inp = pos;
+            // Apply noise
+            // pos.w = sin(frac(pos.w) * 6.28);
+            pos = fmod(pos, 5.0) / 5.0;
+            float4 uv2 = pos + mul(rot, pos);//  snoise(pos * 1.2);
+            float f = snoise(2 * uv2);
+            f = frac(f * 2.0);
+            //f = f - floor(f);
+            float f2 = 0.02;
+            f2 = f2 + 0.08 * smoothstep(0.08, 0.12, f);
+            f2 = f2 + 0.08 * smoothstep(0.21, 0.25, f);
+            f2 = f2 + 0.06 * smoothstep(0.33, 0.37, f);
+            f2 = f2 + 0.23 * smoothstep(0.46, 0.50, f);
+            f2 = f2 + 0.08 * smoothstep(0.58, 0.62, f);
+            f2 = f2 + 0.12 * smoothstep(0.71, 0.75, f);
+            f2 = f2 + 0.12 * smoothstep(0.83, 0.87, f);
+            f2 = f2 + 0.23 * smoothstep(0.96, 1.00, f);
+            
+            float3 col = hsv2rgb(float3(f2, 1.0, 1.0));
+            return col;
+            // return uv.xyz;
+        }
 
       #define apply_proc_tex4D() \
-        float4 O =  cos( 9.*fbm(i.uv.xyz)+ float4(0.0,23.0,21.0,0.0)); \
-        color.rgb = O.rgb;
+        color.rgb = getColor(i.uv);
       #define apply_proc_tex5D() \
         float4 checker = floor(i.uv * 3.0 + 0.01); \
         float checker_V = floor(i.v_nud.y * 3.0 + 0.01); \
