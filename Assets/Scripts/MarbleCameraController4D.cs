@@ -13,8 +13,6 @@ public class MarbleCameraController4D : BasicStaticCamera4D
     public const float PLAYER_RADIUS = 0.3f;
     public const float CAM_HEIGHT = 1.62f;
     public const float VOLUME_TIME = 0.75f;
-    public const float GRAVITY_RATE = 90.0f; //Degrees / Sec
-    public const float GRAVITY_SMOOTH = 0.25f;
     public const float ZOOM_RATE = 1.1f;
     public const float ZOOM_MAX = 8.0f;
     public const float ZOOM_MIN = 0.3f;
@@ -32,9 +30,12 @@ public class MarbleCameraController4D : BasicStaticCamera4D
     [System.NonSerialized] public bool lockViews = false; //Locks volume, shadow, and slice views
     [System.NonSerialized] public bool volumeMode = false;
 
-    Vector3 gravityDirection = (Vector4)Vector3.up;
-    private Vector4 smoothGravityDirection = (Vector4)Vector3.up;
-    private Vector4 intermediateGravityDirection = (Vector4)Vector3.up;
+    float orientationChangeTime = 1e8f;
+    Vector4 oldOrientationVec = Vector3.up;
+    Vector4 currentOrientationVec = Vector3.up;
+    Vector4 newOrientationVec = Vector3.up;
+
+    Vector4 gravityDirection = (Vector4)Vector3.up;
     protected Matrix4x4 gravityMatrix = Matrix4x4.identity;
     protected bool fastGravity = false;
     private float volumeInterp = 0.0f;
@@ -81,8 +82,6 @@ public class MarbleCameraController4D : BasicStaticCamera4D
         volumeInterp = 0.0f;
         volumeSmooth = 0.0f;
         volumeStartYZ = 0.0f;
-        smoothGravityDirection = (Vector4)Vector3.up;
-        intermediateGravityDirection = (Vector4)Vector3.up;
         gravityMatrix = Matrix4x4.identity;
         fastGravity = false;
         zoom = 1.0f;
@@ -278,24 +277,26 @@ public class MarbleCameraController4D : BasicStaticCamera4D
         return accel;
     }
 
+    Vector4 GetOrientationVec(float time)
+    {
+        if (time < orientationChangeTime)
+            return oldOrientationVec;
+        if (time > orientationChangeTime + 0.3f)
+            return newOrientationVec;
+        var completion = Mathf.Clamp01((time - orientationChangeTime) / 0.3f);
+        float angle = Transform4D.Angle(oldOrientationVec, newOrientationVec);
+        return Transform4D.RotateTowards(oldOrientationVec, newOrientationVec, angle * completion);
+    }
+
+    public void UpdateMB(TimeState t)
+    {
+        currentOrientationVec = GetOrientationVec(t.currentAttemptTime);
+    }
+
     protected virtual void Update()
     {
         //Update gravity matrix
-        float maxAngle = Time.deltaTime * GRAVITY_RATE;
-        
-        float gravitySmooth = Mathf.Pow(2.0f, -Time.deltaTime / GRAVITY_SMOOTH);
-        float angle = Transform4D.Angle(gravityDirection, smoothGravityDirection);
-        if (fastGravity || angle > 60.0f)
-        {
-            intermediateGravityDirection = gravityDirection;
-        }
-        else
-        {
-            intermediateGravityDirection = Transform4D.RotateTowards(intermediateGravityDirection, gravityDirection, maxAngle);
-            angle = Transform4D.Angle(intermediateGravityDirection, smoothGravityDirection);
-        }
-        smoothGravityDirection = Transform4D.RotateTowards(intermediateGravityDirection, smoothGravityDirection, gravitySmooth * angle);
-        gravityMatrix = Transform4D.OrthoIterate(Transform4D.FromToRotation(gravityMatrix.GetColumn(1), smoothGravityDirection) * gravityMatrix);
+        gravityMatrix = Transform4D.OrthoIterate(Transform4D.FromToRotation(gravityMatrix.GetColumn(1), currentOrientationVec) * gravityMatrix);
 
         //Check if shadows should be enabled/disabled
         if (!lockViews && InputManager.GetKeyDown(InputManager.KeyBind.ShadowToggle))
@@ -364,6 +365,15 @@ public class MarbleCameraController4D : BasicStaticCamera4D
         oddFrame = !oddFrame;
     }
 
+    public void SetGravityDirection(Vector4 dir, TimeState t, bool instant = false)
+    {
+        if (dir == gravityDirection) return;
+        oldOrientationVec = currentOrientationVec;
+        newOrientationVec = dir;
+        orientationChangeTime = instant ? -1e8f : t.currentAttemptTime;
+        this.gravityDirection = dir;
+    }
+
     protected virtual void UpdateZoom()
     {
         targetZoom *= Mathf.Pow(ZOOM_RATE, -InputManager.GetAxis(InputManager.AxisBind.Zoom));
@@ -377,13 +387,13 @@ public class MarbleCameraController4D : BasicStaticCamera4D
         get
         {
             Vector4 result = position4D;
-            result += smoothGravityDirection * CamHeight();
+            result += currentOrientationVec * CamHeight();
             return result;
         }
         set
         {
             Vector4 result = value;
-            result -= smoothGravityDirection * CamHeight();
+            result -= currentOrientationVec * CamHeight();
             position4D = result;
         }
     }

@@ -129,6 +129,11 @@ public class Marble4D : MBObject
 
     public void UpdateMB(TimeState t)
     {
+        this.camera.UpdateMB(t);
+    }    
+
+    public void UpdateFixedMB(TimeState t)
+    {
         lastRenderedPosition = position;
 
         Move mv;
@@ -694,8 +699,7 @@ public class Marble4D : MBObject
 
     public void _getMarbleAxis(out Vector4 sideDir, out Vector4 motionDir, out Vector4 upDir, out Vector4 wDir)
     {
-        Vector4 gWorkGravityDir = -currentUp;
-        upDir = -gWorkGravityDir;
+        upDir = currentUp;
 
         sideDir = new Vector4(1, 0, 0, 0);
         motionDir = new Vector4(0, 0, 1, 0);
@@ -774,4 +778,13 @@ public class Marble4D : MBObject
     }
 
     public bool IsHelicopterEnabled(TimeState t) => t.currentAttemptTime - this.helicopterUseTime < 5f;
+
+    public bool SetUp(Vector4 dir, TimeState t)
+    {
+        if (currentUp == dir)
+            return false;
+        currentUp = dir;
+        this.camera.SetGravityDirection(dir, t);
+        return true;
+    }
 }

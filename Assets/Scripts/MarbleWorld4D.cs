@@ -150,6 +150,7 @@ public class MarbleWorld4D : MonoBehaviour
     {
         UpdateTimer();
         UpdateGameState();
+        marble.UpdateMB(timeState);
         foreach (var powerUp in powerUps)
             powerUp.UpdateMB(timeState);
     }
@@ -158,7 +159,7 @@ public class MarbleWorld4D : MonoBehaviour
     {
         var ft = timeState;
         ft.dt = Time.fixedDeltaTime;
-        marble.UpdateMB(ft);
+        marble.UpdateFixedMB(ft);
     }
 
     public bool PickUpPowerup(Marble4D marble, PowerUp powerup)
