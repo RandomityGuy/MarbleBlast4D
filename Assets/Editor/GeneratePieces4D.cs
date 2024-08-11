@@ -99,6 +99,11 @@ public class GeneratePieces4D : EditorWindow
             var capFlags = ToFlags(true, true, capBack, capFront, capLeft, capRight, capAnth, capKenth);
             GenerateEdgeTile("Edge", new Vector4(tileSize.x, edgeHeightUnits * 0.5f, tileSize.y, tileSize.z), capFlags);
         }
+        if (GUILayout.Button("Wall"))
+        {
+            var capFlags = ToFlags(true, true, capBack, capFront, capLeft, capRight, capAnth, capKenth);
+            GenerateWallTile("Wall", new Vector4(tileSize.x, edgeHeightUnits * 0.5f, tileSize.y, tileSize.z), capFlags);
+        }
     }
 
     [MenuItem("4D/Generate 4D Level Pieces")]
@@ -1210,6 +1215,77 @@ public class GeneratePieces4D : EditorWindow
         bc.pos = Vector4.zero;
         bc.size = new Vector4(size.x * 0.25f, size.y * 0.5f, size.z * 0.25f, size.w * 0.25f);
     }
+
+    public static void GenerateWallTile(string name, Vector4 size, byte capFlags)
+    {
+        var mesh = new Mesh4D(1);
+
+
+        /*
+               e7 - - - - - - - - e8
+                | \  ~            | \  ~
+                |   \     ~       |   \     ~
+                |     \        ~  |     \        ~
+                |      e3 - - - - - - - -e4           ~
+                |       |    ~    |      ~|    ~           ~
+                |       |         |       |   ~     ~           ~
+                |       |         |    ~  |        ~     ~           ~
+                |       |         |       | ~          s7 - - - - - - - - s8
+               e5 - - - | - - - -e6       |      ~      | \        ~      | \
+                  \  ~  |           \  ~  |           ~ |   \           ~ |   \
+                    \   | ~           \   | ~           |  ~  \           |  ~  \
+                      \ |      ~        \ |      ~      |      s3 - - - - - - - - s4
+                       e1 - - - - - - - -e2           ~ |       |         |       |
+                             ~           ~     ~        |  ~    |         |       |
+                                  ~           ~     ~   |       |         |       |
+                                       ~           ~    |~      |    ~    |       |
+                                            ~          s5 - - - | - - - -s6       |
+                                                 ~        \     |  ~        \     |
+                                                      ~     \   |       ~     \   |
+                                                           ~  \ |            ~  \ |
+                                                               s1 - - - - - - - - s2
+         * 
+         */
+        var ax1 = new Vector4(1.0f, 0, 0, 0) * size.x;
+        var ax2 = new Vector4(0, 2f, 0, 0) * size.y;
+        var ax3 = new Vector4(0, 0, 1.0f, 0) * size.z;
+        var ax4 = new Vector4(0, 0, 0, 1.0f) * size.w;
+
+        // Start
+        var s1 = -(ax1 + ax2 + ax3 + ax4);//   new Vector4(-xwWidth.x, 0, 0, -xwWidth.y) - globalOff;
+        var s2 = s1 + 2 * ax1;
+        var s3 = s1 + 2 * ax2;
+        var s4 = s1 + 2 * ax1 + 2 * ax2;
+        var s5 = s1 + 2 * ax4;
+        var s6 = s1 + 2 * ax1 + 2 * ax4;
+        var s7 = s1 + 2 * ax2 + 2 * ax4;
+        var s8 = s1 + 2 * ax1 + 2 * ax2 + 2 * ax4;
+        // End
+        var e1 = s1 + 2 * ax3;
+        var e2 = s2 + 2 * ax3;
+        var e3 = s3 + 2 * ax3;
+        var e4 = s4 + 2 * ax3;
+        var e5 = s5 + 2 * ax3;
+        var e6 = s6 + 2 * ax3;
+        var e7 = s7 + 2 * ax3;
+        var e8 = s8 + 2 * ax3;
+
+        FromFlags(capFlags, out bool edgeTop, out bool edgeBottom, out bool edgeBack, out bool edgeFront, out bool edgeLeft, out bool edgeRight, out bool edgeAnth, out bool edgeKenth);
+        AddTesseract(mesh, new Vector4[] { s1, s2, s3, s4, s5, s6, s7, s8 }, new Vector4[] { e1, e2, e3, e4, e5, e6, e7, e8 }, true, ToFlags(true, true, edgeBack, edgeFront, edgeLeft, edgeRight, edgeAnth, edgeKenth));
+
+        var obj = CreateObject4D(mesh, name);
+
+        var o4d = obj.GetComponent<Object4D>();
+        o4d.uvOffset = new Vector4(size.x + 0.75f, size.y  + 0.5f, size.z + 0.75f, 0.5f);
+
+        var mr = obj.GetComponent<MeshRenderer>();
+        mr.sharedMaterials = new Material[] { AssetDatabase.LoadAssetAtPath<Material>("Assets/Materials/WallCool.mat") };
+
+        var bc = obj.AddComponent<BoxCollider4D>();
+        bc.pos = Vector4.zero;
+        bc.size = new Vector4(size.x * 1f, size.y * 2f, size.z * 1f, size.w * 1f);
+    }
+
 
     static GameObject CreateObject4D(Mesh4D mesh, string name)
     {
