@@ -112,4 +112,13 @@ public abstract class Collider4D : MonoBehaviour {
             return false;
         }
     }
+
+    public bool CheckAABB(Vector4 pos)
+    {
+        if (worldAabbMin.x > pos.x || worldAabbMax.x < pos.x) return false;
+        if (worldAabbMin.y > pos.y || worldAabbMax.y < pos.y) return false;
+        if (worldAabbMin.z > pos.z || worldAabbMax.z < pos.z) return false;
+        if (worldAabbMin.w > pos.w || worldAabbMax.w < pos.w) return false;
+        return true;
+    }
 }

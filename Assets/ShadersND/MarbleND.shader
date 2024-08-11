@@ -105,9 +105,9 @@ Shader "Custom/MarbleND" {
         float3 mbgTex(float4 pos)
         {
             pos /= 1000;
-            float3 magicVec = magic(pos.xyz, 0.110, 1.7);
+            float3 magicVec = magic(pos.xyz, 0.150, 1.7);
             float magicFac = (magicVec.x + magicVec.y + magicVec.z) / 3.0;
-            float4 noiseInp = float4(pos.xyz, magicFac * 8.34);
+            float4 noiseInp = float4(pos.xyz, magicFac * 8.54);
             float4 distort = float4(snoise(noiseInp + random_vector4_offset(pos.xyzw)) * 0.42,
                 snoise(noiseInp + random_vector4_offset(pos.yzxw)) * 0.42, snoise(noiseInp + random_vector4_offset(pos.xzyw)) * 0.42,
             snoise(noiseInp + random_vector4_offset(pos.ywzx)) * 0.42);
@@ -142,14 +142,14 @@ Shader "Custom/MarbleND" {
             //f2 = f2 + 0.036 * lerp(0.810, 0.857, f);
             float f2 = 0.02;
     
-            f2 = f2 + 0.08 * (clamp(noiseFac, 0.08, 0.12) - 0.08 )/ (0.12 - 0.08);
-            f2 = f2 + 0.08 * (clamp(noiseFac, 0.21, 0.25) - 0.21 )/ (0.25 - 0.21);
-            f2 = f2 + 0.06 * (clamp(noiseFac, 0.33, 0.37) - 0.33 )/ (0.37 - 0.33);
-            f2 = f2 + 0.23 * (clamp(noiseFac, 0.46, 0.50) - 0.46 )/ (0.50 - 0.46);
-            f2 = f2 + 0.08 * (clamp(noiseFac, 0.58, 0.62) - 0.58 )/ (0.62 - 0.58);
-            f2 = f2 + 0.12 * (clamp(noiseFac, 0.71, 0.75) - 0.71 )/ (0.75 - 0.71);
-            f2 = f2 + 0.12 * (clamp(noiseFac, 0.83, 0.87) - 0.83 )/ (0.87 - 0.83);
-            f2 = f2 + 0.23 * (clamp(noiseFac, 0.96, 1.00) - 0.96 )/ (1.00 - 0.96);
+            f2 = f2 + 0.08 * (clamp(noiseFac, 0.08, 0.12) - 0.08 )/ (0.04);
+            f2 = f2 + 0.08 * (clamp(noiseFac, 0.21, 0.25) - 0.21 )/ (0.04);
+            f2 = f2 + 0.06 * (clamp(noiseFac, 0.33, 0.37) - 0.33 )/ (0.04);
+            f2 = f2 + 0.23 * (clamp(noiseFac, 0.46, 0.50) - 0.46 )/ (0.04);
+            f2 = f2 + 0.08 * (clamp(noiseFac, 0.58, 0.62) - 0.58 )/ (0.04);
+            f2 = f2 + 0.12 * (clamp(noiseFac, 0.71, 0.75) - 0.71 )/ (0.04);
+            f2 = f2 + 0.12 * (clamp(noiseFac, 0.83, 0.87) - 0.83 )/ (0.04);
+            f2 = f2 + 0.23 * (clamp(noiseFac, 0.96, 1.00) - 0.96 )/ (0.04);
     
             //f2 = f2 + 0.08 * smoothstep(0.08, 0.12, noiseFac);
             //f2 = f2 + 0.08 * smoothstep(0.21, 0.25, noiseFac);

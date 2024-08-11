@@ -22,6 +22,7 @@ public class MarbleWorld4D : MonoBehaviour
 
     GemItem[] gems;
     PowerUp[] powerUps;
+    TriggerEntity[] triggers;
     int collectedGems = 0;
 
     TimerComponent timer;
@@ -52,6 +53,9 @@ public class MarbleWorld4D : MonoBehaviour
         powerUps = FindObjectsOfType<PowerUp>();
         foreach (var powerUp in powerUps)
             powerUp.world = this;
+        triggers = FindObjectsOfType<TriggerEntity>();
+        foreach (var trigger in triggers)
+            trigger.world = this;
     }
 
     // Start is called before the first frame update

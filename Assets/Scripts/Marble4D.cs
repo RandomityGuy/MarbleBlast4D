@@ -104,6 +104,7 @@ public class Marble4D : MBObject
     Object4D obj4D;
 
     List<CollisionInfo> contacts = new List<CollisionInfo>();
+    HashSet<TriggerEntity> insideTriggers = new();
 
     // Start is called before the first frame update
     void Start()
@@ -174,6 +175,7 @@ public class Marble4D : MBObject
 
     void FindContacts(TimeState t)
     {
+        var currentInsideTriggers = new HashSet<TriggerEntity>();
         Collider4D.Hit hit = Collider4D.Hit.Empty;
         var colliders = world.collisionWorld4D.SphereIntersection(position, _radius);
         foreach (var cg in colliders)
@@ -183,42 +185,62 @@ public class Marble4D : MBObject
             {
                 if (collider.gameObject == this.gameObject) continue;
 
-                Transform4D localToWorld4D = collider.obj4D.WorldTransform4D();
-                Transform4D worldToLocal4D = collider.obj4D.InverseWorldTransform4D();
-
-                if (collider.Collide(localToWorld4D, worldToLocal4D, position, _radius, ref hit))
+                if (collider.type == ColliderType.Trigger)
                 {
-                    switch (collider.type)
+                    if (collider.CheckAABB(position))
                     {
-                        case ColliderType.Collideable:
+                        var tcomp = collider.gameObject.GetComponent<Trigger>();
+                        tcomp.OnCollide(this, t);
+                        var te = collider.gameObject.GetComponent<TriggerEntity>();
+                        if (te != null)
+                        {
+                            currentInsideTriggers.Add(te);
+                            if (!insideTriggers.Contains(te))
                             {
-                                var coll = new CollisionInfo();
-                                coll.normal = hit.displacement.normalized;
-                                coll.restitution = 1f;
-                                coll.friction = 1;
-                                coll.velocity = default(Vector4);
-                                coll.point = position - hit.displacement;
-                                coll.penetration = 0;
-                                contacts.Add(coll);
+                                te.OnEnter(this, t);
                             }
-                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    Transform4D localToWorld4D = collider.obj4D.WorldTransform4D();
+                    Transform4D worldToLocal4D = collider.obj4D.InverseWorldTransform4D();
+                    if (collider.Collide(localToWorld4D, worldToLocal4D, position, _radius, ref hit))
+                    {
+                        switch (collider.type)
+                        {
+                            case ColliderType.Collideable:
+                                {
+                                    var coll = new CollisionInfo();
+                                    coll.normal = hit.displacement.normalized;
+                                    coll.restitution = 1f;
+                                    coll.friction = 1;
+                                    coll.velocity = default(Vector4);
+                                    coll.point = position - hit.displacement;
+                                    coll.penetration = 0;
+                                    contacts.Add(coll);
+                                }
+                                break;
 
-                        case ColliderType.Trigger:
-                            {
-                                var tcomp = collider.gameObject.GetComponent<Trigger>();
-                                tcomp.OnCollide(this, t);
-                            }
-                            break;
-
-                        case ColliderType.Finish:
-                            {
-                                world.TouchFinish();
-                            }
-                            break;
+                            case ColliderType.Finish:
+                                {
+                                    world.TouchFinish();
+                                }
+                                break;
+                        }
                     }
                 }
             }
         }
+        foreach (var insideT in insideTriggers)
+        {
+            if (!currentInsideTriggers.Contains(insideT))
+            {
+                insideT.OnLeave(this, t);
+            }
+        }
+        insideTriggers = currentInsideTriggers;
         //        foreach (KeyValuePair<int, ColliderGroup4D> kv in Collider4D.colliders)
         //{
         //    //Cache object transforms for this group
@@ -791,5 +813,11 @@ public class Marble4D : MBObject
         currentUp = dir;
         this.camera.SetGravityDirection(dir, t);
         return true;
+    }
+
+    public void SetOutOfBounds(bool value)
+    {
+        isOob = value;
+        camera.isOOB = value;
     }
 }

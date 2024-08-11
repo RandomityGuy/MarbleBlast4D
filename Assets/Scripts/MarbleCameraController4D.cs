@@ -64,6 +64,8 @@ public class MarbleCameraController4D : BasicStaticCamera4D
     public GameObject targetMarble;
     Vector4 targetPos = Vector4.one;
 
+    public bool isOOB = false;
+
     protected override void Start()
     {
         base.Start();
@@ -179,18 +181,21 @@ public class MarbleCameraController4D : BasicStaticCamera4D
             }
             else
             {
-                if (volumeMode)
+                if (!isOOB)
                 {
-                    m1 = m1 * Quaternion.Euler(-smoothAngY, 0.0f, -smoothAngX);
-                    yaw += smoothAngX;
-                }
-                else
-                {
-                    
-                    m1 = m1 * Quaternion.Euler(0.0f, 0.0f, -smoothAngX);
-                    lookYZ += smoothAngY;
-                    lookYZ = Mathf.Clamp(lookYZ, -89.0f, 89.0f);
-                    yaw += smoothAngX;
+                    if (volumeMode)
+                    {
+                        m1 = m1 * Quaternion.Euler(-smoothAngY, 0.0f, -smoothAngX);
+                        yaw += smoothAngX;
+                    }
+                    else
+                    {
+
+                        m1 = m1 * Quaternion.Euler(0.0f, 0.0f, -smoothAngX);
+                        lookYZ += smoothAngY;
+                        lookYZ = Mathf.Clamp(lookYZ, -89.0f, 89.0f);
+                        yaw += smoothAngX;
+                    }
                 }
             }
         }
@@ -344,11 +349,20 @@ public class MarbleCameraController4D : BasicStaticCamera4D
         camMatrix = CreateCamMatrix(m1, lookYZ);
 
         // Camera orbit - bruh
-        targetPos = targetMarble.GetComponent<Marble4D>().lastRenderedPosition;
+        if (!isOOB)
+        {
+            targetPos = targetMarble.GetComponent<Marble4D>().lastRenderedPosition;
 
-        var forward = new Vector4(0, 0, 1, 0);
-        var forwardCam = camMatrix * forward * cameraDistance;
-        camPosition4D = targetPos - forwardCam;
+            var forward = new Vector4(0, 0, 1, 0);
+            var forwardCam = camMatrix * forward * cameraDistance;
+            camPosition4D = targetPos - forwardCam;
+        }
+        else
+        {
+            var forward = targetPos - camPosition4D;
+            camMatrix.SetColumn(2, forward);
+            // Look at the marble
+        }
 
         //Update the m0 quaternion
         m0Quaternion = Quaternion.Slerp(Quaternion.Euler(-lookYZ, 0.0f, 0.0f), Quaternion.Euler(0.0f, 0.0f, 90.0f), volumeSmooth);
