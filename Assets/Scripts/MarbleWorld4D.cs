@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Unity.VisualScripting.TextureAssets;
 using UnityEngine;
 
 public struct TimeState
@@ -30,6 +29,8 @@ public class MarbleWorld4D : MonoBehaviour
     [NonSerialized] public TimeState timeState;
     float bonusTime = 0;
     TimeState? finishTime;
+
+    float fixedDeltaTimeAccumulator = 0.0f;
     
     private void Awake()
     {
@@ -70,7 +71,8 @@ public class MarbleWorld4D : MonoBehaviour
         marble.SetPosition(startPad.GetComponent<Object4D>().worldPosition4D + new Vector4(0, 3, 0, 0));
         marble.velocity.Set(0, 0, 0, 0);
         marble.omega = BiVector3.zero;
-        
+
+        fixedDeltaTimeAccumulator = 0;
         timeState.gameplayClock = 0;
         timeState.currentAttemptTime = 0;
         bonusTime = 0;
@@ -150,16 +152,20 @@ public class MarbleWorld4D : MonoBehaviour
     {
         UpdateTimer();
         UpdateGameState();
+
+        fixedDeltaTimeAccumulator += Time.deltaTime;
+
+        while (fixedDeltaTimeAccumulator >= Time.fixedDeltaTime)
+        {
+            var ft = timeState;
+            ft.dt = Time.fixedDeltaTime;
+            marble.UpdateFixedMB(ft);
+            fixedDeltaTimeAccumulator -= Time.fixedDeltaTime;
+        }
+
         marble.UpdateMB(timeState);
         foreach (var powerUp in powerUps)
             powerUp.UpdateMB(timeState);
-    }
-
-    private void FixedUpdate()
-    {
-        var ft = timeState;
-        ft.dt = Time.fixedDeltaTime;
-        marble.UpdateFixedMB(ft);
     }
 
     public bool PickUpPowerup(Marble4D marble, PowerUp powerup)

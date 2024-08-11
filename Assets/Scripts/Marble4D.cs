@@ -2,7 +2,6 @@ using R40;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using static UnityEditor.PlayerSettings;
 
 public struct Move
 {
@@ -42,7 +41,8 @@ public class Marble4D : MBObject
 
     public float radiusOfGyration = 2f; // https://github.com/EpiTorres/into-another-dimension/tree/main
 
-    Vector4 lastRenderedPosition;
+    Vector4 oldPos;
+    [NonSerialized] public Vector4 lastRenderedPosition;
 
     public Vector4 currentUp = new Vector4(0, 1, 0, 0);
 
@@ -88,6 +88,8 @@ public class Marble4D : MBObject
 
     public Vector4 lastContactNormal;
 
+    float interpTime = 0.0f;
+
     public GameObject helicopterImage;
     GameObject helicopterImageInstance;
     float helicopterUseTime = -1e8f;
@@ -107,34 +109,43 @@ public class Marble4D : MBObject
     void Start()
     {
         obj4D = this.gameObject.GetComponent<Object4D>();
-        lastRenderedPosition = obj4D.worldPosition4D;
-        position = lastRenderedPosition;
+        oldPos = obj4D.worldPosition4D;
+        lastRenderedPosition = oldPos;
+        position = oldPos;
         orientation = new Rotor4D();
         mode = MarbleMode.Start;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        this.gameObject.transform.position = Transform4D.XYZ(position); // Transform4D.XYZ(lastRenderedPosition) + Transform4D.XYZ(velocity) * Time.deltaTime;
-        obj4D.positionW = position.w; // lastRenderedPosition.w + velocity.w * Time.deltaTime;
     }
 
     public void SetPosition(Vector4 pos)
     {
         position = pos;
+        oldPos = pos;
         lastRenderedPosition = pos;
         this.gameObject.GetComponent<Object4D>().localPosition4D = pos;
     }
 
     public void UpdateMB(TimeState t)
     {
+        interpTime += t.dt;
+        var displayPos = Vector4.Lerp(oldPos, position, interpTime / Time.fixedDeltaTime);
+        obj4D.localPosition4D = displayPos;
+
+        lastRenderedPosition = displayPos;
+
+        var deltaOmega = omega * t.dt / 2;
+
+        orientation = orientation - (deltaOmega * orientation);
+        orientation.Normalize();
+
+        obj4D.localRotation4D = orientation.ToMatrix();
+
         this.camera.UpdateMB(t);
     }    
 
     public void UpdateFixedMB(TimeState t)
     {
-        lastRenderedPosition = position;
+        interpTime = 0.0f;
+        oldPos = position;
 
         Move mv;
         mv.mv = new Vector3(0, 0, 0);
@@ -157,13 +168,6 @@ public class Marble4D : MBObject
         mv.powerup = false;
 
         AdvancePhysics(mv, t);
-
-        var deltaOmega = omega * t.dt / 2;
-
-        orientation = orientation - (deltaOmega * orientation);
-        orientation.Normalize();
-
-        obj4D.localRotation4D = orientation.ToMatrix();
 
         UpdatePowerupImages(t);
     }

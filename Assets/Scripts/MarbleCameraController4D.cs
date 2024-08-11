@@ -49,7 +49,6 @@ public class MarbleCameraController4D : BasicStaticCamera4D
     protected float targetZoom = 1.0f;
     protected float volumeHeight = 0.05f;
     protected float runMultiplier = 2.0f;
-    private bool oddFrame = true;
 
     float yaw = 0f;
     float tilt = 0f;
@@ -292,11 +291,6 @@ public class MarbleCameraController4D : BasicStaticCamera4D
 
     public void UpdateMB(TimeState t)
     {
-        currentOrientationVec = GetOrientationVec(t.currentAttemptTime);
-    }
-
-    protected virtual void Update()
-    {
         //Update gravity matrix
         gravityMatrix = Transform4D.OrthoIterate(Transform4D.FromToRotation(gravityMatrix.GetColumn(1), currentOrientationVec) * gravityMatrix);
 
@@ -350,7 +344,7 @@ public class MarbleCameraController4D : BasicStaticCamera4D
         camMatrix = CreateCamMatrix(m1, lookYZ);
 
         // Camera orbit - bruh
-        targetPos = targetMarble.GetComponent<Object4D>().worldPosition4D;
+        targetPos = targetMarble.GetComponent<Marble4D>().lastRenderedPosition;
 
         var forward = new Vector4(0, 0, 1, 0);
         var forwardCam = camMatrix * forward * cameraDistance;
@@ -358,13 +352,13 @@ public class MarbleCameraController4D : BasicStaticCamera4D
 
         //Update the m0 quaternion
         m0Quaternion = Quaternion.Slerp(Quaternion.Euler(-lookYZ, 0.0f, 0.0f), Quaternion.Euler(0.0f, 0.0f, 90.0f), volumeSmooth);
+
+        currentOrientationVec = GetOrientationVec(t.currentAttemptTime);
     }
 
-    protected virtual void FixedUpdate()
+    protected virtual void Update()
     {
-        //Handle the physics for the player
-        //NOTE: Player doesn't move quickly, it's okay to update every other frame.
-        oddFrame = !oddFrame;
+
     }
 
     public void SetGravityDirection(Vector4 dir, TimeState t, bool instant = false)
