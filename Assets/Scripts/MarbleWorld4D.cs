@@ -27,9 +27,13 @@ public class MarbleWorld4D : MonoBehaviour
 
     TimerComponent timer;
     GemCounter gemCounter;
+    CenterMessage centerMessage;
+    BottomMessage bottomMessage;
     [NonSerialized] public TimeState timeState;
     float bonusTime = 0;
     TimeState? finishTime;
+    TimeState outOfBoundsTime;
+    bool isOutOfBounds = false;
 
     float fixedDeltaTimeAccumulator = 0.0f;
     
@@ -38,6 +42,8 @@ public class MarbleWorld4D : MonoBehaviour
         collisionWorld4D = new CollisionWorld4D();
         timer = FindFirstObjectByType<TimerComponent>();
         gemCounter = FindFirstObjectByType<GemCounter>();
+        centerMessage = FindFirstObjectByType<CenterMessage>();
+        bottomMessage = FindFirstObjectByType<BottomMessage>();
         marble = FindFirstObjectByType<Marble4D>();
         marble.world = this;
         startPad = FindFirstObjectByType<StartPad>();
@@ -72,10 +78,21 @@ public class MarbleWorld4D : MonoBehaviour
 
     void Restart()
     {
+        foreach (var powerup in powerUps)
+        {
+            powerup.Reset();
+        }
+        foreach (var gem in gems)
+        {
+            gem.Reset();
+        }
         marble.SetPosition(startPad.GetComponent<Object4D>().worldPosition4D + new Vector4(0, 3, 0, 0));
         marble.velocity.Set(0, 0, 0, 0);
         marble.omega = BiVector3.zero;
+        marble.SetOutOfBounds(false);
+        marble.heldPowerup = null;
 
+        isOutOfBounds = false;
         fixedDeltaTimeAccumulator = 0;
         timeState.gameplayClock = 0;
         timeState.currentAttemptTime = 0;
@@ -83,8 +100,7 @@ public class MarbleWorld4D : MonoBehaviour
         timer.SetTime(timeState.gameplayClock);
         collectedGems = 0;
 
-        foreach (var gem in gems)
-            gem.SetHidden(false);
+        marble.SetUp(Vector3.up, timeState, true);
 
         gemCounter.SetGemCount(0, gems.Length);
     }
@@ -133,10 +149,48 @@ public class MarbleWorld4D : MonoBehaviour
 
     void UpdateGameState()
     {
-        if (timeState.currentAttemptTime < 3.5 && finishTime == null)
-            marble.mode = MarbleMode.Start;
-        else if (timeState.currentAttemptTime >= 3.5 && finishTime == null)
-            marble.mode = MarbleMode.Normal;
+        if (isOutOfBounds)
+        {
+            if (timeState.currentAttemptTime - outOfBoundsTime.currentAttemptTime > 2.5f)
+            {
+                Restart();
+            }
+            if (timeState.currentAttemptTime - outOfBoundsTime.currentAttemptTime > 2f)
+            {
+                centerMessage.SetMessage("");
+            }
+            return;
+        }
+
+        if (finishTime == null)
+        {
+
+            if (this.timeState.currentAttemptTime < 0.5)
+            {
+                centerMessage.SetMessage("");
+                this.marble.mode = MarbleMode.Start;
+            }
+            if ((this.timeState.currentAttemptTime >= 0.5) && (this.timeState.currentAttemptTime < 2))
+            {
+                centerMessage.SetMessage("Ready");
+                this.marble.mode = MarbleMode.Start;
+            }
+            if ((this.timeState.currentAttemptTime >= 2) && (this.timeState.currentAttemptTime < 3.5))
+            {
+                centerMessage.SetMessage("Set");
+                this.marble.mode = MarbleMode.Start;
+            }
+            if ((this.timeState.currentAttemptTime >= 3.5) && (this.timeState.currentAttemptTime < 5.5))
+            {
+                centerMessage.SetMessage("Go");
+                this.marble.mode = MarbleMode.Normal;
+            }
+            if (this.timeState.currentAttemptTime >= 5.5)
+            {
+                centerMessage.SetMessage("");
+                this.marble.mode = MarbleMode.Normal;
+            }
+        }
     }
 
     public void TouchFinish()
@@ -190,6 +244,15 @@ public class MarbleWorld4D : MonoBehaviour
     public void AddBonusTime(float time)
     {
         bonusTime += time;
+    }
+
+    public void GoOutOfBounds(Marble4D marble)
+    {
+        if (isOutOfBounds) return;
+        isOutOfBounds = true;
+        outOfBoundsTime = timeState;
+        marble.SetOutOfBounds(true);
+        centerMessage.SetMessage("Out of Bounds");
     }
 }
 

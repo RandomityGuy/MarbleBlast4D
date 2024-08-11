@@ -96,7 +96,7 @@ public class MarbleCameraController4D : BasicStaticCamera4D
     public float CamHeight()
     {
         //In VR, camera height is built-in, don't need to add anything extra.
-        float headHeight = (UnityEngine.XR.XRSettings.enabled ? 0.0f : CAM_HEIGHT);
+        float headHeight = (UnityEngine.XR.XRSettings.enabled ? 0.0f : 0.3f);
         return Mathf.Lerp(headHeight, volumeHeight, volumeSmooth);
     }
 
@@ -199,42 +199,6 @@ public class MarbleCameraController4D : BasicStaticCamera4D
                 }
             }
         }
-
-        //if (volumeMode)
-        //{
-        //    var forward = new Vector4(0, 0, 1, 0);
-        //    var tform = Transform4D.PlaneRotation(tilt, 2, 3) * Transform4D.PlaneRotation(yaw, 0, 2);
-        //    forward = tform * forward;
-
-        //    camPosition4D = targetPos; // - smoothGravityDirection * Mathf.Sin(lookYZ * Mathf.PI / 180) * cameraDistance;
-        //    camPosition4D -= forward * Mathf.Cos(lookYZ * Mathf.PI / 180) * cameraDistance;
-        //}
-        //else
-        //{
-        //    var forward = new Vector4(0, 0, 1, 0);
-        //    var tform = Transform4D.PlaneRotation(yaw, 0, 2);
-        //    forward = tform * forward;
-
-        //    camPosition4D = targetPos - smoothGravityDirection * Mathf.Sin(lookYZ * Mathf.PI / 180) * cameraDistance;
-        //    camPosition4D -= forward * Mathf.Cos(lookYZ * Mathf.PI / 180) * cameraDistance;
-        //}
-
-        //m1 = Quaternion.identity;
-
-        //Vector4 dir = new Vector4(1, 0, 0, 0);
-
-        //var mat = Transform4D.PlaneRotation(-lookYZ, 1, 2);
-        //dir = mat * dir;
-        //// mat = Transform4D.PlaneRotation(yaw, 0, 2);
-        //// dir = mat * dir;
-        //// var q = Quaternion.Euler(0, 0, lookYZ);
-        //// dir = q * dir;
-        //// q = Quaternion.Euler(0, yaw, 0);
-        //// dir = q * dir;
-        //dir *= cameraDistance;
-
-        //camPosition4D = targetPos - dir;
-        // m1 = Quaternion.LookRotation(dir, new Vector3(0, 1, 0));
     }
 
     public Vector4 HandleMoving()
@@ -348,20 +312,14 @@ public class MarbleCameraController4D : BasicStaticCamera4D
         //Create the camera matrix
         camMatrix = CreateCamMatrix(m1, lookYZ);
 
+        targetPos = targetMarble.GetComponent<Marble4D>().lastRenderedPosition;
         // Camera orbit - bruh
         if (!isOOB)
         {
-            targetPos = targetMarble.GetComponent<Marble4D>().lastRenderedPosition;
-
             var forward = new Vector4(0, 0, 1, 0);
             var forwardCam = camMatrix * forward * cameraDistance;
             camPosition4D = targetPos - forwardCam;
-        }
-        else
-        {
-            var forward = targetPos - camPosition4D;
-            camMatrix.SetColumn(2, forward);
-            // Look at the marble
+            camPosition4D += currentOrientationVec * CamHeight(); // Vertical translation
         }
 
         //Update the m0 quaternion
@@ -397,13 +355,11 @@ public class MarbleCameraController4D : BasicStaticCamera4D
         get
         {
             Vector4 result = position4D;
-            result += currentOrientationVec * CamHeight();
             return result;
         }
         set
         {
             Vector4 result = value;
-            result -= currentOrientationVec * CamHeight();
             position4D = result;
         }
     }
@@ -415,8 +371,20 @@ public class MarbleCameraController4D : BasicStaticCamera4D
 
         nonVCameraMatrix = gravityMatrix * Transform4D.SkipY(m1Rot);
 
+        var rot = nonVCameraMatrix * mainRot;
+
+        if (isOOB)
+        {
+            var currentForward = rot * new Vector4(0, 0, 1, 0);
+            var newForward = (targetPos - camPosition4D).normalized;
+            var rotMat = Transform4D.FromToRotation(currentForward, newForward);
+            rot = rotMat * rot;
+            // Transform4D.MakeOrthoNormal(ref rot);
+            
+        }
+
         //Combine with secondary rotation
-        return gravityMatrix * Transform4D.SkipY(m1Rot) * mainRot;
+        return rot;
     }
 
     public void UpdateCameraMask()

@@ -39,7 +39,7 @@ public class Marble4D : MBObject
     public BiVector3 omega;
     Rotor4D orientation;
 
-    public float radiusOfGyration = 2f; // https://github.com/EpiTorres/into-another-dimension/tree/main
+    public float radiusOfGyration = 2.5f; // https://github.com/EpiTorres/into-another-dimension/tree/main
 
     Vector4 oldPos;
     [NonSerialized] public Vector4 lastRenderedPosition;
@@ -151,6 +151,7 @@ public class Marble4D : MBObject
         Move mv;
         mv.mv = new Vector3(0, 0, 0);
         mv.jump = false;
+
         if (InputManager.GetKey(InputManager.KeyBind.Left))
             mv.mv.x = -1;
         if (InputManager.GetKey(InputManager.KeyBind.Right))
@@ -806,12 +807,12 @@ public class Marble4D : MBObject
 
     public bool IsHelicopterEnabled(TimeState t) => t.currentAttemptTime - this.helicopterUseTime < 5f;
 
-    public bool SetUp(Vector4 dir, TimeState t)
+    public bool SetUp(Vector4 dir, TimeState t, bool instant = false)
     {
         if (currentUp == dir)
             return false;
         currentUp = dir;
-        this.camera.SetGravityDirection(dir, t);
+        this.camera.SetGravityDirection(dir, t, instant);
         return true;
     }
 

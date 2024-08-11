@@ -69,6 +69,12 @@ public abstract class PowerUp : Trigger
         }
     }
 
+    public override void Reset()
+    {
+        SetHidden(false);
+        lastPickupTime = -1f;
+    }
+
     public abstract bool PickUp(Marble4D marble);
 
     public abstract void Use(Marble4D marble, TimeState t);

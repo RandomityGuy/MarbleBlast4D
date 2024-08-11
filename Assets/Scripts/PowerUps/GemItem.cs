@@ -31,4 +31,9 @@ public class GemItem : Trigger
         SetHidden(true);
         world.PickUpGem(this);
     }
+
+    public override void Reset()
+    {
+        SetHidden(false);
+    }
 }

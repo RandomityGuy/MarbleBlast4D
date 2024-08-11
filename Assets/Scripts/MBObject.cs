@@ -8,5 +8,10 @@ using UnityEngine;
 public class MBObject : MonoBehaviour
 {
     [System.NonSerialized] public MarbleWorld4D world;
+
+    public virtual void Reset()
+    {
+
+    }
 }
 

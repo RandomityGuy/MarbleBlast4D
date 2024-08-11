@@ -14,7 +14,7 @@ public class InBoundsTrigger : TriggerEntity
 
     public override void OnLeave(Marble4D marble, TimeState t)
     {
-        marble.SetOutOfBounds(true);
+        world.GoOutOfBounds(marble);
     }
 }
 
