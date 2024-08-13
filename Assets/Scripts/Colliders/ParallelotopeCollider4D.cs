@@ -37,59 +37,59 @@ public class ParallelotopeCollider4D : Collider4D {
 
     private void OnDrawGizmosSelected()
     {
-        if (obj4D == null)
-        {
-            obj4D = gameObject.GetComponent<Object4D>();
-        }
-        var wt = obj4D.WorldTransform4D();
+        //if (obj4D == null)
+        //{
+        //    obj4D = gameObject.GetComponent<Object4D>();
+        //}
+        //var wt = obj4D.WorldTransform4D();
 
-        var points = new Vector4[16];
-        var i = 0;
-        for (int i1 = -1; i1 <= 1; i1 += 2)
-        {
-            for (int i2 = -1; i2 <= 1; i2 += 2)
-            {
-                for (int i3 = -1; i3 <= 1; i3 += 2)
-                {
-                    points[i++] = wt.matrix *  (pos + ax1 * i1 + ax2 * i2 + ax3 * i3) + wt.translation;
-                }
-            }
-        }
+        //var points = new Vector4[16];
+        //var i = 0;
+        //for (int i1 = -1; i1 <= 1; i1 += 2)
+        //{
+        //    for (int i2 = -1; i2 <= 1; i2 += 2)
+        //    {
+        //        for (int i3 = -1; i3 <= 1; i3 += 2)
+        //        {
+        //            points[i++] = wt.matrix *  (pos + ax1 * i1 + ax2 * i2 + ax3 * i3) + wt.translation;
+        //        }
+        //    }
+        //}
 
-        Gizmos.DrawLine(points[0], points[1]);
-        Gizmos.DrawLine(points[0], points[2]);
-        Gizmos.DrawLine(points[1], points[3]);
-        Gizmos.DrawLine(points[2], points[3]);
-        Gizmos.DrawLine(points[0], points[4]);
-        Gizmos.DrawLine(points[6], points[7]);
-        Gizmos.DrawLine(points[4], points[5]);
-        Gizmos.DrawLine(points[4], points[6]);
-        Gizmos.DrawLine(points[3], points[7]);
-        Gizmos.DrawLine(points[7], points[5]);
-        Gizmos.DrawLine(points[5], points[1]);
-        Gizmos.DrawLine(points[2], points[6]);
+        //Gizmos.DrawLine(points[0], points[1]);
+        //Gizmos.DrawLine(points[0], points[2]);
+        //Gizmos.DrawLine(points[1], points[3]);
+        //Gizmos.DrawLine(points[2], points[3]);
+        //Gizmos.DrawLine(points[0], points[4]);
+        //Gizmos.DrawLine(points[6], points[7]);
+        //Gizmos.DrawLine(points[4], points[5]);
+        //Gizmos.DrawLine(points[4], points[6]);
+        //Gizmos.DrawLine(points[3], points[7]);
+        //Gizmos.DrawLine(points[7], points[5]);
+        //Gizmos.DrawLine(points[5], points[1]);
+        //Gizmos.DrawLine(points[2], points[6]);
 
-        for (i = 0; i < 8; i++)
-        {
-            // Swap y and w
-            var temp = points[i].y;
-            points[i].y = -points[i].w;
-            points[i].w = temp;
-        }
+        //for (i = 0; i < 8; i++)
+        //{
+        //    // Swap y and w
+        //    var temp = points[i].y;
+        //    points[i].y = -points[i].w;
+        //    points[i].w = temp;
+        //}
 
-        // Volume
-        Gizmos.DrawLine(points[0], points[1]);
-        Gizmos.DrawLine(points[0], points[2]);
-        Gizmos.DrawLine(points[1], points[3]);
-        Gizmos.DrawLine(points[2], points[3]);
-        Gizmos.DrawLine(points[0], points[4]);
-        Gizmos.DrawLine(points[6], points[7]);
-        Gizmos.DrawLine(points[4], points[5]);
-        Gizmos.DrawLine(points[4], points[6]);
-        Gizmos.DrawLine(points[3], points[7]);
-        Gizmos.DrawLine(points[7], points[5]);
-        Gizmos.DrawLine(points[5], points[1]);
-        Gizmos.DrawLine(points[2], points[6]);
+        //// Volume
+        //Gizmos.DrawLine(points[0], points[1]);
+        //Gizmos.DrawLine(points[0], points[2]);
+        //Gizmos.DrawLine(points[1], points[3]);
+        //Gizmos.DrawLine(points[2], points[3]);
+        //Gizmos.DrawLine(points[0], points[4]);
+        //Gizmos.DrawLine(points[6], points[7]);
+        //Gizmos.DrawLine(points[4], points[5]);
+        //Gizmos.DrawLine(points[4], points[6]);
+        //Gizmos.DrawLine(points[3], points[7]);
+        //Gizmos.DrawLine(points[7], points[5]);
+        //Gizmos.DrawLine(points[5], points[1]);
+        //Gizmos.DrawLine(points[2], points[6]);
     }
 
     public override Vector4 NP(Vector4 localPt) {

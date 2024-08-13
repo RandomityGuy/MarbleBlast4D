@@ -37,11 +37,15 @@ class EditorObject4D : Editor
                 Undo.RecordObject(tgo, "Move Object4D");
                 if (EditorVolume.isVolume)
                 {
+                    t.transform.position = new Vector3(newPos.x, t.localPosition4D.y, newPos.z);
                     t.localPosition4D = new Vector4(newPos.x, t.localPosition4D.y, newPos.z, -newPos.y);
+                    t.positionW = -newPos.y;
                 }
                 else if (EditorVolume.isVolume5D)
                 {
+                    t.transform.position = new Vector3(t.localPosition4D.x, newPos.y, newPos.z);
                     t.localPosition4D = new Vector4(t.localPosition4D.x, newPos.y, newPos.z, -newPos.x);
+                    t.positionW = -newPos.x;
                 }
                 else
                 {

@@ -135,6 +135,26 @@ public struct BiVector3 : IEquatable<BiVector3>
             v.x * b.xw + v.y * b.yw + v.z * b.zw);
     }
 
+    public float OuterMagnitude(Vector4 b)
+    {
+        var xyz = xy * b.z - xz * b.y + yz * b.x;
+        var xyw = xy * b.w - xw * b.y + yw * b.x;
+        var xzw = xz * b.w - xw * b.z + zw * b.x;
+        var yzw = yz * b.w - yw * b.z + zw * b.y;
+
+        return Mathf.Sqrt(xyz * xyz + xyw * xyw + xzw * xzw + yzw * yzw);
+    }
+
+    public (float, float, float, float) Outer(Vector4 b)
+    {
+        return (xy * b.z - xz * b.y + yz * b.x, xy * b.w - xw * b.y + yw * b.x, xz * b.w - xw * b.z + zw * b.x, yz * b.w - yw * b.z + zw * b.y);
+    }
+
+    public static float VolumeDotVector((float, float, float, float) a, Vector4 b)
+    {
+        return a.Item1 * b.w - a.Item2 * b.z + a.Item3 * b.y - a.Item4 * b.x;
+    }
+
     public float magnitude => Mathf.Sqrt(xy * xy + yz * yz + xz * xz + xw * xw + yw * yw + zw * zw);
     public float sqrMagnitude => xy * xy + yz * yz + xz * xz + xw * xw + yw * yw + zw * zw;
 }

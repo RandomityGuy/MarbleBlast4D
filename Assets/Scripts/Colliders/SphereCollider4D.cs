@@ -5,9 +5,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SphereCollider4D : Collider4D {
+public class SphereCollider4D : Collider4D, GJKCollider {
     public Vector4 center = Vector4.zero;
     public float radius = 1.0f;
+
+    Vector4 GJKCollider.Position => center;
 
     protected override void Awake() {
         base.Awake();
@@ -18,5 +20,10 @@ public class SphereCollider4D : Collider4D {
 
     public override Vector4 NP(Vector4 localPt) {
         return center + radius * (localPt - center).normalized;
+    }
+
+    public Vector4 Support(Vector4 direction)
+    {
+        return center + radius * direction.normalized;
     }
 }
